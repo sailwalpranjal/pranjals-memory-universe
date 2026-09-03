@@ -18,7 +18,8 @@ import {
   Layers,
   Gamepad2,
   Lock,
-  Unlock
+  Unlock,
+  Compass
 } from "lucide-react";
 import OnThisDay from "@/components/OnThisDay";
 import GenerateMemoryModal from "@/components/GenerateMemoryModal";
@@ -62,29 +63,14 @@ function UniverseScene() {
   );
 }
 
-// --- Stunning SVG Logo ---
+// --- Stunning Icon Logo ---
 const UniverseLogo = () => (
-  <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl mb-4">
-    <circle cx="50" cy="50" r="40" stroke="url(#paint0_linear)" strokeWidth="1.5" strokeDasharray="4 6" className="animate-[spin_10s_linear_infinite]" />
-    <circle cx="50" cy="50" r="30" stroke="url(#paint1_linear)" strokeWidth="2" opacity="0.8" className="animate-[spin_15s_linear_infinite_reverse]" />
-    <circle cx="50" cy="50" r="15" fill="url(#paint2_radial)" className="animate-pulse" />
-    <path d="M50 5 L50 95 M5 50 L95 50" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-    <path d="M18 18 L82 82 M18 82 L82 18" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-    <defs>
-      <linearGradient id="paint0_linear" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#4FD1C5" />
-        <stop offset="1" stopColor="#6366F1" />
-      </linearGradient>
-      <linearGradient id="paint1_linear" x1="90" y1="10" x2="10" y2="90" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#F472B6" />
-        <stop offset="1" stopColor="#3B82F6" />
-      </linearGradient>
-      <radialGradient id="paint2_radial" cx="50" cy="50" r="15" gradientUnits="userSpaceOnUse">
-        <stop stopColor="#ffffff" />
-        <stop offset="1" stopColor="#6366F1" stopOpacity="0" />
-      </radialGradient>
-    </defs>
-  </svg>
+  <div className="flex items-center justify-center mb-8 relative">
+    <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full w-32 h-32 mx-auto animate-pulse" />
+    <div className="relative bg-black/40 backdrop-blur-md p-6 rounded-full border border-white/10 shadow-2xl">
+      <Compass className="w-16 h-16 text-primary transition-transform duration-700 hover:rotate-90" strokeWidth={1.5} />
+    </div>
+  </div>
 );
 
 // --- Biometric Auth Modal ---
