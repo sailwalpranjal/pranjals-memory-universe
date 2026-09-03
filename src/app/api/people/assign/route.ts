@@ -15,7 +15,12 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { faceId, photoId, personId, newPersonName } = body;
+    const { faceId, photoId, personId, newPersonName, forceCoverPhotoPersonId } = body;
+
+    if (forceCoverPhotoPersonId && photoId) {
+      await supabase.from('people').update({ cover_photo_id: photoId }).eq('id', forceCoverPhotoPersonId);
+      return NextResponse.json({ success: true });
+    }
 
     if (!faceId && !photoId) {
       return NextResponse.json({ error: 'Either faceId or photoId is required' }, { status: 400 });

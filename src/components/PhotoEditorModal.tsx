@@ -122,7 +122,7 @@ export default function PhotoEditorModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           photoId: photo.id,
-          personName: nameToTag.trim(),
+          newPersonName: nameToTag.trim(),
         }),
       });
       const data = await res.json();
@@ -144,7 +144,7 @@ export default function PhotoEditorModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           photoId: photo.id,
-          personName: '', // Empty name triggers just cover photo update? Wait, backend needs fixing for this
+          newPersonName: "",
           forceCoverPhotoPersonId: personId
         })
       });
