@@ -37,6 +37,16 @@ export default function NavBar() {
   const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Strict session zero-persistence: Clear auth cookie on tab close/reload
+  useEffect(() => {
+    const handleUnload = () => {
+      // Send a fire-and-forget request to delete the cookie when the user reloads or closes the tab
+      navigator.sendBeacon('/api/auth/logout');
+    };
+    window.addEventListener('beforeunload', handleUnload);
+    return () => window.removeEventListener('beforeunload', handleUnload);
+  }, []);
+
   // Close mobile drawer on route transition
   useEffect(() => {
     setIsDrawerOpen(false);

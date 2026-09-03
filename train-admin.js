@@ -1,9 +1,10 @@
-require('dotenv').config({ path: '.env.local' });
+﻿require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 const faceapi = require('@vladmandic/face-api');
 const { Canvas, Image, ImageData, loadImage } = require('canvas');
 
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+faceapi.tf.setBackend('cpu');
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -11,6 +12,7 @@ const supabase = createClient(
 );
 
 async function trainAdmin() {
+  await faceapi.tf.ready();
   console.log("Loading models...");
   await faceapi.nets.ssdMobilenetv1.loadFromDisk('./public/models');
   await faceapi.nets.faceLandmark68Net.loadFromDisk('./public/models');
@@ -18,22 +20,21 @@ async function trainAdmin() {
   console.log("Models loaded.");
 
   const images = [
-    'C:/Users/hp/.gemini/antigravity/brain/29ff3fd4-f729-4780-b443-3c3427fb9dbe/.user_uploaded/media_1788414238632.jpg',
-    'C:/Users/hp/.gemini/antigravity/brain/29ff3fd4-f729-4780-b443-3c3427fb9dbe/.user_uploaded/media_1788414238738.png'
+    'C:/Users/hp/.gemini/antigravity/brain/29ff3fd4-f729-4780-b443-3c3427fb9dbe/.user_uploaded/media_1788449473155.jpg',
+    'C:/Users/hp/.gemini/antigravity/brain/29ff3fd4-f729-4780-b443-3c3427fb9dbe/.user_uploaded/media_1788449473196.jpg'
   ];
 
-  // Insert Person
   const { data: person, error: personError } = await supabase
     .from('people')
-    .insert({ name: 'Pranjal (Admin)' })
-    .select()
+    .select('*')
+    .eq('name', 'Pranjal (Admin)')
     .single();
 
-  if (personError) {
-    console.error("Error inserting person:", personError);
+  if (personError || !person) {
+    console.error("Error finding person Pranjal (Admin):", personError);
     return;
   }
-  console.log("Created person Pranjal (Admin):", person.id);
+  console.log("Found person Pranjal (Admin):", person.id);
 
   for (let i = 0; i < images.length; i++) {
     console.log(`Processing image ${i + 1}...`);
@@ -43,11 +44,10 @@ async function trainAdmin() {
     if (detection) {
       const descriptor = Array.from(detection.descriptor);
       
-      // Create a dummy photo
       const { data: photo, error: photoError } = await supabase
         .from('photos')
         .insert({
-          original_filename: `admin_ref_${i}.jpg`,
+          original_filename: `admin_ref_new_${i}.jpg`,
           visibility: 'PRIVATE',
         })
         .select()

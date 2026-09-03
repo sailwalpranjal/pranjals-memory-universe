@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const { data: matches, error } = await supabase.rpc('match_faces', {
       query_embedding: `[${descriptor.join(',')}]`,
-      match_threshold: 0.40,
+      match_threshold: 0.42,
       match_count: 1,
     });
 
@@ -73,7 +73,6 @@ export async function POST(request: Request) {
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             path: '/',
-            maxAge: 60 * 60 * 24 * 7 // 1 week
           });
 
           return NextResponse.json({

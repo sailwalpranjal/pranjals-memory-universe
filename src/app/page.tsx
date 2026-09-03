@@ -1,3 +1,4 @@
+import * as faceapi from "@vladmandic/face-api";
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -73,19 +74,93 @@ const UniverseLogo = () => (
   </div>
 );
 
+
+
+// --- Liveness Utils ---
+function getEAR(eye: faceapi.Point[]) {
+  const v1 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
+  const v2 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
+  const h = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
+  return (v1 + v2) / (2.0 * h);
+}
+
 // --- Biometric Auth Modal ---
 const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void; }) => {
   const webcamRef = useRef<Webcam>(null);
   const [loading, setLoading] = useState(false);
+  const [statusText, setStatusText] = useState<string>("Analyzing Map...");
   const [error, setError] = useState<string | null>(null);
+  const livenessRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    let active = true;
+    const runLiveness = async () => {
+      if (!isOpen || !webcamRef.current || !webcamRef.current.video) return;
+      try {
+        if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+          setStatusText("Loading Biometrics...");
+          await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+          await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models');
+        }
+
+        setStatusText("LIVENESS: PLEASE BLINK");
+        let blinkDetected = false;
+        
+        while (active && !blinkDetected) {
+          if (!webcamRef.current?.video) {
+            await new Promise(r => setTimeout(r, 100));
+            continue;
+          }
+          
+          const detection = await faceapi.detectSingleFace(
+            webcamRef.current.video, 
+            new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.4 })
+          ).withFaceLandmarks(true);
+
+          if (detection) {
+            const leftEye = detection.landmarks.getLeftEye();
+            const rightEye = detection.landmarks.getRightEye();
+            const leftEAR = getEAR(leftEye);
+            const rightEAR = getEAR(rightEye);
+            const avgEAR = (leftEAR + rightEAR) / 2;
+
+            if (avgEAR < 0.22) { // Blink threshold
+              blinkDetected = true;
+              setStatusText("Liveness Verified!");
+              livenessRef.current = true;
+              break;
+            }
+          }
+          await new Promise(r => setTimeout(r, 80)); // 12 FPS
+        }
+
+        if (blinkDetected && active) {
+          await new Promise(r => setTimeout(r, 300)); // wait for eyes to open
+          captureAndAuth();
+        }
+      } catch (err) {
+        console.error("Liveness error:", err);
+      }
+    };
+    
+    if (isOpen) {
+      livenessRef.current = false;
+      setLoading(false);
+      setError(null);
+      runLiveness();
+    }
+    
+    return () => { active = false; };
+  }, [isOpen]);
 
   const captureAndAuth = async () => {
-    if (!webcamRef.current) return;
+    if (!webcamRef.current || !livenessRef.current) return;
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) return;
 
     setLoading(true);
     setError(null);
+    setStatusText("Verifying Identity...");
     try {
       const res = await fetch('/api/auth/face', {
         method: 'POST',
@@ -93,14 +168,19 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
         body: JSON.stringify({ image: imageSrc })
       });
       const data = await res.json();
-      if (data.success) {
-        document.cookie = "pranjal_admin_token=" + (data.token || "authenticated") + "; path=/; max-age=86400";
+      if (data.success && data.isAdmin) {
+        // We rely purely on the HTTP-Only cookie set by the server!
+        // We set a dummy session storage just for instant UI updates.
+        sessionStorage.setItem('pranjal_admin', 'true');
         onSuccess();
       } else {
         setError(data.error || "Authentication failed. Face not recognized.");
+        // Restart liveness
+        livenessRef.current = false;
       }
     } catch {
       setError("Network error during biometric scan.");
+      livenessRef.current = false;
     } finally {
       setLoading(false);
     }
@@ -126,10 +206,10 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
             videoConstraints={{ facingMode: "user" }}
             className="w-full h-full object-cover scale-x-[-1]"
           />
-          {loading && (
+          {(!livenessRef.current || loading) && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
               <div className="w-10 h-10 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mb-3" />
-              <span className="text-xs text-emerald-400 tracking-widest uppercase animate-pulse">Analyzing Map...</span>
+              <span className="text-xs text-emerald-400 tracking-widest uppercase animate-pulse">{statusText}</span>
             </div>
           )}
           
@@ -149,13 +229,6 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
             className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs tracking-widest uppercase font-medium transition-colors"
           >
             Cancel
-          </button>
-          <button 
-            onClick={captureAndAuth}
-            disabled={loading}
-            className="flex-1 py-3.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 rounded-xl text-xs tracking-widest uppercase font-bold transition-all disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]"
-          >
-            Authenticate
           </button>
         </div>
       </div>
