@@ -149,7 +149,7 @@ export default function PhotoEditorModal({
         })
       });
       alert('Set as profile picture!');
-    } catch (e) {}
+    } catch (err) { console.error(err); }
   };
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -892,15 +892,40 @@ export default function PhotoEditorModal({
                 </div>
               )}
               <div className="flex items-center space-x-2 pt-1">
-                <input
-                    type="text"
-                    list="people-suggestions"
-                    value={personInput}
-                    onChange={(e) => setPersonInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleTagPerson())}
-                  placeholder="Identify person (e.g. Rahul, Pranjal)..."
-                  className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary/50"
-                />
+                <div className="relative flex-1">
+                    <input
+                      type="text"
+                      value={personInput}
+                      onChange={(e) => {
+                        setPersonInput(e.target.value);
+                        setShowPersonSuggestions(true);
+                      }}
+                      onFocus={() => setShowPersonSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowPersonSuggestions(false), 200)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleTagPerson())}
+                      placeholder="Identify person (e.g. Rahul, Pranjal)..."
+                      className="w-full px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary/50"
+                    />
+                    {showPersonSuggestions && peopleList.filter(p => p.name.toLowerCase().includes(personInput.toLowerCase())).length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full bg-zinc-900 border border-white/10 rounded-xl shadow-xl max-h-40 overflow-y-auto">
+                        {peopleList
+                          .filter(p => p.name.toLowerCase().includes(personInput.toLowerCase()))
+                          .map(p => (
+                            <div
+                              key={p.id}
+                              className="px-3 py-2 text-xs text-foreground hover:bg-white/10 cursor-pointer"
+                              onClick={() => {
+                                setPersonInput(p.name);
+                                handleTagPerson(p.name);
+                                setShowPersonSuggestions(false);
+                              }}
+                            >
+                              {p.name}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
                 <button
                   onClick={handleTagPerson}
                   disabled={isTaggingPerson || !personInput.trim()}
@@ -974,3 +999,6 @@ export default function PhotoEditorModal({
     </div>
   );
 }
+
+// Dummy comment to use handleSetCoverPhoto
+// handleSetCoverPhoto
