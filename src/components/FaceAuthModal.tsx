@@ -167,7 +167,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
           await new Promise(r => requestAnimationFrame(r));
         }
 
-        if (active && currentState === "AUTHENTICATING") {
+        if (active && stateRef.current === "AUTHENTICATING") {
           setStatusMessage("Verifying biometric template...");
           // Send the first reliable embedding (fusion logic can also be averaged, but taking the best quality is usually enough)
           const res = await fetch('/api/auth/face', {
