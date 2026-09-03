@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const validPassword = process.env.ADMIN_FALLBACK_PASSWORD || "Pranjal@Admin2026!";
     
     if (password.trim() === validPassword.trim()) {
-      cookies().set('admin_auth', 'true', {
+      cookies().set('pranjal_admin_token', 'true', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',

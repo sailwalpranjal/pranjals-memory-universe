@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
   try {
-    const authCookie = cookies().get('admin_auth');
+    const authCookie = cookies().get('pranjal_admin_token');
     if (authCookie?.value !== 'true') {
       return NextResponse.json({ success: false, error: 'Unauthorized. Admin access required.' }, { status: 401 });
     }

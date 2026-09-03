@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 
 export async function POST() {
   const cookieStore = cookies();
-  cookieStore.delete('admin_auth');
+  cookieStore.delete('pranjal_admin_token');
   return NextResponse.json({ success: true });
 }
+

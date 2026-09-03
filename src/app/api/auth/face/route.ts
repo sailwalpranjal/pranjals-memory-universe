@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const { data: matches, error } = await supabase.rpc('match_faces', {
       query_embedding: `[${descriptor.join(',')}]`,
-      match_threshold: 0.85,
+      match_threshold: 0.94,
       match_count: 1,
     });
 
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       if (person && person.name === 'Pranjal (Admin)') {
         rateLimitMap.delete(ip);
         
-        cookies().set('admin_auth', 'true', {
+        cookies().set('pranjal_admin_token', 'true', {
           httpOnly: true,
           secure: process.env.NODE_ENV === 'production',
           sameSite: 'strict',
@@ -73,3 +73,4 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
+
