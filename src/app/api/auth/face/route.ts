@@ -23,6 +23,9 @@ export async function POST(request: Request) {
     const { Canvas, Image, ImageData, loadImage } = require('canvas');
     faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
+    await faceapi.tf.setBackend('cpu');
+    await faceapi.tf.ready();
+
     const modelsPath = path.join(process.cwd(), 'public', 'models');
     await faceapi.nets.ssdMobilenetv1.loadFromDisk(modelsPath);
     await faceapi.nets.faceLandmark68Net.loadFromDisk(modelsPath);
