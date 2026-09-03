@@ -22,7 +22,7 @@ export default function AdminEnrollment() {
         await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
         
         if (active) setPhase("CENTER");
-      } catch (err) {
+      } catch {
         if (active) {
           setMessage("Failed to load models. Check network.");
           setPhase("ERROR");
@@ -40,8 +40,7 @@ export default function AdminEnrollment() {
     const captureLoop = async () => {
       const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
       
-      let baselineOffset = 0;
-      let consecutiveFrames = 0;
+            let consecutiveFrames = 0;
 
       while (active) {
         if (!webcamRef.current?.video) {

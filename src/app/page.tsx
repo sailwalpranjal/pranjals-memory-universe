@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import * as faceapi from "@vladmandic/face-api";
 
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -23,6 +23,8 @@ import {
   Compass
 } from "lucide-react";
 import OnThisDay from "@/components/OnThisDay";
+
+type Stats = { photoCount: number; peopleCount: number; placesCount: number; latestPhoto: string | null; recentPhotos: string[]; };
 import GenerateMemoryModal from "@/components/GenerateMemoryModal";
 
 import * as THREE from 'three';
@@ -77,17 +79,24 @@ const UniverseLogo = () => (
 
 
 // --- Liveness Utils ---
-function getYawRatio(landmarks: faceapi.FaceLandmarks68) {
-  const jaw = landmarks.getJawOutline();
-  const nose = landmarks.getNose();
-  // Nose tip is index 3 of nose array (overall index 30). Jaw bounds are 0 and 16.
-  const leftDist = nose[3].x - jaw[0].x;
-  const rightDist = jaw[16].x - nose[3].x;
-  return leftDist / rightDist;
-}
+
 
 // --- Biometric Auth Modal ---
 import FaceAuthModal from "@/components/FaceAuthModal";
+
+
+const NAV_CARDS = [
+  { href: "/gallery", label: "Capture", icon: Camera, description: "Live camera snapshot & high-res media upload" },
+  { href: "/timeline", label: "Timeline", icon: Calendar, description: "Every memory, chronologically arranged" },
+  { href: "/people", label: "People", icon: Users, description: "Faces and social connections in your world" },
+  { href: "/places", label: "Places", icon: MapPin, description: "Locations mapped across your life" },
+  { href: "/meet", label: "Private Meet", icon: Video, description: "Live encrypted video, audio & text sessions" },
+  { href: "/collections", label: "Albums", icon: Layers, description: "Curate journeys, projects & annual archives" },
+  { href: "/puzzles", label: "Puzzles", icon: Gamepad2, description: "Playable memory recall & timeline challenges" },
+  { href: "/make", label: "Studio", icon: LayoutDashboard, description: "Craft high-resolution collages and posters" },
+  { href: "/lab", label: "The Lab", icon: Sparkles, description: "Experimental visual shaders and spectrum analysis" },
+  { href: "/search", label: "Search", icon: Search, description: "Find anything across all metadata" },
+];
 
 export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null);
@@ -153,7 +162,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col relative bg-background">
-      {/* â”€â”€ 3D BACKGROUND â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ 3D BACKGROUND Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="absolute inset-0 z-0 h-[85vh]">
         <Canvas camera={{ position: [0, 0, 10], fov: 45 }}>
           <Suspense fallback={null}>
@@ -164,7 +173,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background pointer-events-none" />
       </div>
 
-      {/* â”€â”€ HERO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ HERO Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="relative z-10 min-h-[85vh] flex flex-col items-center justify-center overflow-hidden">
         
         {/* Content */}
@@ -257,7 +266,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* â”€â”€ RESTRICTED OVERLAY FOR VISITORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ RESTRICTED OVERLAY FOR VISITORS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       {!isAdmin && (
         <section className="px-6 md:px-10 py-24 max-w-7xl mx-auto w-full text-center relative z-10 flex flex-col items-center">
           <Lock className="w-12 h-12 text-amber-500/50 mb-6" />
@@ -275,7 +284,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* â”€â”€ ADMIN CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ ADMIN CONTENT Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       {isAdmin && (
         <>
           {/* FEATURED PHOTO */}
@@ -344,10 +353,10 @@ export default function Home() {
         </>
       )}
 
-      {/* â”€â”€ FOOTER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ FOOTER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <footer className="mt-auto px-6 py-12 border-t border-white/10 text-center relative z-10 bg-background/80 backdrop-blur-lg">
         <p className="text-[10px] text-white/30 tracking-[0.4em] uppercase font-medium">
-          Private Â· Biometric Security Â· Pranjal&apos;s Universe
+          Private Ã‚Â· Biometric Security Ã‚Â· Pranjal&apos;s Universe
         </p>
       </footer>
 
@@ -364,3 +373,4 @@ export default function Home() {
     </main>
   );
 }
+
