@@ -1,62 +1,117 @@
-# Pranjal's Memory Universe
+﻿# Pranjal's Memory Universe 🌌
 
-A highly advanced, AI-native personal gallery and social network designed specifically for archiving, analyzing, and interactively exploring memories. Built with Next.js 14, Supabase, and Google Gemini 1.5 Pro.
+![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-black?style=for-the-badge&logo=three.js)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Face-API](https://img.shields.io/badge/Face--API-Biometrics-blue?style=for-the-badge)
 
-## 🚀 Features
+A highly secure, biometric-locked personal archiving system and interactive 3D universe. This application goes beyond standard photo galleries by using **true 128-Dimensional facial vector embeddings** to authenticate the administrator and protect private memories, alongside advanced AI-driven features like semantic relationship puzzles and generative studios.
 
-- **Automated AI Archiving (Gemini Multimodal):** Upload photos, audio, or video clips, and Gemini instantly processes the media in the background. It generates poetic titles, extracts EXIF data, tags elements, and filters out non-conventional media (e.g., screenshots/receipts) into an archive automatically.
-- **Zero-Shot Facial & Voice Recognition:** The system natively recognizes Pranjal (Admin) and clusters distinct faces and voices into social profiles dynamically. No client-side heavy lifting—entirely serverless.
-- **Visitor Restricted Mode:** A secure privacy toggle. When guests use the app, they can enter their name, and the backend SQL policies instantly filter the entire universe to *only* show memories where they are visually or audibly present.
-- **Interactive Multi-player Puzzles:** Advanced cognitive games designed for ages 16+ including *Archive Geoguessr*, *Memory Sequence*, *Context Connections*, and *Odd One Out*.
-- **Creative Studio (Frame Inspector):** A boundless canvas to lay out photos beautifully, with touch-draggable physics and intelligent bottom-sheet property inspectors.
-- **The Lab (Node Graph):** Visualize how your memories interlink via tags, dates, and people in a stunning SVG node network.
-- **Meet Tab with PiP:** Engage in video calls with native Picture-in-Picture mode and screen sharing, while solving co-op puzzles.
+---
 
-## 🛠 Tech Stack
+## ✨ Key Features
 
-- **Framework:** [Next.js 14](https://nextjs.org/) (App Router)
-- **Styling:** Tailwind CSS + custom CSS animations
-- **Database & Auth:** [Supabase](https://supabase.com/) (PostgreSQL + pgvector for faces)
-- **AI Engine:** Google GenAI (Gemini 2.5 Flash for Images, Gemini 1.5 Pro for Video/Audio)
-- **Storage:** Cloudinary (Primary Media CDN) + Supabase Storage (Private Backup)
-- **Mapping:** Maplibre GL JS (for Places tab)
+### 🔒 Military-Grade Biometric Security
+- **128-D Vector Verification**: Uses @vladmandic/face-api mapped directly to Node.js canvas to compute exact facial Euclidean vectors on the backend, completely immune to text-based spoofing.
+- **Edge Route Protection**: Employs Next.js edge middleware to strictly wall off all admin-level routes (/gallery, /timeline, /collections, etc.). Visitors can only view the stunning 3D landing page unless they physically pass the webcam lock.
+- **Vector Database**: Utilizes Supabase pgvector to store facial embeddings and securely compute mathematical cosine distances in real-time via PostgreSQL RPCs.
 
-## 📦 Getting Started
+### 🌌 Interactive 3D Frontend
+- **Three.js Particle Universe**: Built with @react-three/fiber and @react-three/drei to render a lightweight, highly optimized floating 3D particle network representing your memory neural graph.
+- **Glassmorphic UI**: Clean, modern aesthetics layered over the 3D canvas, featuring Lucide React iconography and Tailwind CSS animations.
 
-### 1. Environment Variables
-Create a \`.env.local\` file in the root directory and add the following:
-\`\`\`env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_key
-GEMINI_API_KEY=your_gemini_api_key
-CLOUDINARY_URL=your_cloudinary_url
-\`\`\`
+### 🧩 Advanced AI Capabilities
+- **Semantic Puzzles Engine**: Automatically generates dynamic puzzles (like *Context Connections* and *Archive Geoguessr*) using true Haversine distance calculations and Gemini AI semantic clustering on your EXIF metadata.
+- **Creative Studio**: An integrated AI canvas allowing generative interaction with your secure archive.
 
-### 2. Installation
-Install the required dependencies:
-\`\`\`bash
-npm install
-\`\`\`
+---
 
-### 3. Run Development Server
-Start the Next.js development server:
-\`\`\`bash
-npm run dev
-\`\`\`
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+## 🛠️ Technology Stack
 
-### 4. Production Build
-To create an optimized production build for Vercel/Netlify:
-\`\`\`bash
-npm run build
-npm start
-\`\`\`
+- **Framework**: [Next.js 14](https://nextjs.org/) (App Router, Server Actions)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **3D Rendering**: [Three.js](https://threejs.org/) / [React Three Fiber](https://docs.pmnd.rs/react-three-fiber)
+- **Database & Storage**: [Supabase](https://supabase.com/) (PostgreSQL + pgvector)
+- **Biometrics**: ace-api.js (TensorFlow.js)
+- **AI Processing**: Google Gemini API
+- **Maps**: Mapbox GL / react-map-gl
 
-## 🔒 Security & Privacy
+---
 
-This project strictly protects privacy. The \`photo_faces\` and \`people\` tables serve as access-control layers during Visitor Mode. Ensure \`.env.local\` is never committed to GitHub.
+## 🚀 Getting Started
 
-## 📝 License
+### Prerequisites
+- Node.js (v18 or higher)
+- Supabase Account & Database with pgvector extension enabled
+- Google Gemini API Key
 
-Private and proprietary. Built for Pranjal.
+### Installation
+
+1. **Clone the repository:**
+   `ash
+   git clone https://github.com/sailwalpranjal/pranjals-memory-universe.git
+   cd pranjals-memory-universe
+   `
+
+2. **Install dependencies:**
+   `ash
+   npm install
+   `
+
+3. **Set up Environment Variables:**
+   Rename .env.example to .env.local and fill in your keys:
+   `env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_key
+   GEMINI_API_KEY=your_gemini_api_key
+   NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token
+   `
+
+4. **Initialize Database:**
+   Run the setup script to initialize the PostgreSQL tables, indexes, and RPC functions:
+   `ash
+   node setup-db.js
+   `
+
+5. **Train the Biometric Admin (First Time Setup):**
+   Upload exactly 2 clear images of your face to securely seed the database with your 128-D vector mapping.
+   `ash
+   node train-admin.js
+   `
+
+6. **Run the Development Server:**
+   `ash
+   npm run dev
+   `
+   Navigate to http://localhost:3000.
+
+---
+
+## ☁️ Deployment (Vercel)
+
+This project is optimized for deployment on Vercel.
+
+1. Push your code to your GitHub repository.
+2. Go to your [Vercel Dashboard](https://vercel.com/dashboard) and click **Add New... > Project**.
+3. Import this GitHub repository.
+4. Add all the environment variables from your .env.local file into the Vercel project settings.
+5. In the Build & Development Settings, Vercel will automatically detect Next.js. Leave the build command as 
+pm run build.
+6. Click **Deploy**.
+
+> **Note on Deployment Dependencies**: 
+> The project uses canvas as a backend server component for face-api processing. It is explicitly marked in 
+ext.config.mjs under serverComponentsExternalPackages to guarantee Vercel’s Node.js edge functions compile it flawlessly.
+
+---
+
+## 🛡️ Privacy & Security Note
+
+This application processes highly sensitive biometric data. The ace-api.js calculations occur strictly on the server/edge, and raw 128-D vector arrays are securely hashed in the Supabase database. Vector comparisons never expose the underlying logic to the client.
+
+## 📄 License
+
+This project is licensed under the MIT License.

@@ -39,3 +39,7 @@ next-env.d.ts
 .agents/
 *.log
 
+
+# Ignore internal markdown files
+*.md
+!README.md
