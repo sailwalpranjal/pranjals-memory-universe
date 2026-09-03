@@ -69,7 +69,40 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ photos: photosWithUrls });
+        // Group photos by date
+    const grouped: Record<string, typeof photosWithUrls> = {};
+    photosWithUrls.forEach((photo) => {
+      const dateTarget = photo.captured_at || photo.imported_at;
+      let dateStr = 'Undated';
+      if (dateTarget) {
+        try {
+          const d = new Date(dateTarget);
+          if (!isNaN(d.getTime())) {
+            dateStr = d.toISOString().split('T')[0];
+          }
+        } catch {
+          dateStr = 'Undated';
+        }
+      }
+      if (!grouped[dateStr]) grouped[dateStr] = [];
+      grouped[dateStr].push(photo);
+    });
+
+    // Sort timeline grouped date keys descending (latest date first, 'Undated' at the end)
+    const sortedDateKeys = Object.keys(grouped).sort((a, b) => {
+      if (a === 'Undated') return 1;
+      if (b === 'Undated') return -1;
+      return b.localeCompare(a);
+    });
+
+    const timeline = sortedDateKeys.map(dateStr => {
+      return {
+        date: dateStr,
+        photos: grouped[dateStr]
+      };
+    });
+    
+    return NextResponse.json({ timeline });
   } catch (err) {
     console.error('Timeline error:', err);
     return NextResponse.json({ error: 'Failed to fetch timeline' }, { status: 500 });
