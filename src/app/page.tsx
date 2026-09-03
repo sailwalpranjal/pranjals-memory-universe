@@ -113,10 +113,11 @@ export default function Home() {
 
   const handleAdminToggle = () => {
     if (isAdmin) {
-      // Logout
-      document.cookie = "pranjal_admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      setIsAdmin(false);
-      window.location.reload();
+      // Logout via API
+      fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+        setIsAdmin(false);
+        window.location.reload();
+      });
     } else {
       setAuthModalOpen(true);
     }
