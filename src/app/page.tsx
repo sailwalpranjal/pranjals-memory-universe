@@ -1,11 +1,11 @@
 ﻿"use client";
-import * as faceapi from "@vladmandic/face-api";
+
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Stars, Float, OrbitControls, Sparkles as DreiSparkles } from "@react-three/drei";
-import Webcam from "react-webcam";
+
 import {
   Camera,
   Calendar,
