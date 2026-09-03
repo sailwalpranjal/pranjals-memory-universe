@@ -166,17 +166,22 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
   const [elapsedSecs, setElapsedSecs] = useState(0);
 
   
+    const myInfoRef = useRef({ name: displayName, isScreenSharing });
+  useEffect(() => {
+    myInfoRef.current = { name: displayName, isScreenSharing };
+    if (channel) {
+      channel.send({
+        type: 'broadcast',
+        event: 'user-info',
+        payload: { userId, name: displayName, isScreenSharing }
+      });
+    }
+  }, [channel, displayName, isScreenSharing, userId]);
+
   useEffect(() => {
     if (!channel) return;
-    
-    // Broadcast my info when I join or update name
-    channel.send({
-      type: 'broadcast',
-      event: 'user-info',
-      payload: { userId, name: displayName, isScreenSharing }
-    });
 
-    const infoListener = channel.on('broadcast', { event: 'user-info' }, ({ payload }) => {
+    channel.on('broadcast', { event: 'user-info' }, ({ payload }) => {
       setParticipants(prev => ({
         ...prev,
         [payload.userId]: { name: payload.name, isScreenSharing: payload.isScreenSharing }
@@ -185,28 +190,24 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
       channel.send({
         type: 'broadcast',
         event: 'user-info-ack',
-        payload: { userId, name: displayName, isScreenSharing }
+        payload: { userId, ...myInfoRef.current }
       });
     });
 
-    const ackListener = channel.on('broadcast', { event: 'user-info-ack' }, ({ payload }) => {
+    channel.on('broadcast', { event: 'user-info-ack' }, ({ payload }) => {
       setParticipants(prev => ({
         ...prev,
         [payload.userId]: { name: payload.name, isScreenSharing: payload.isScreenSharing }
       }));
     });
 
-    const chatListener = channel.on('broadcast', { event: 'chat-message' }, ({ payload }) => {
+    channel.on('broadcast', { event: 'chat-message' }, ({ payload }) => {
       setMessages(prev => [...prev, payload]);
       setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
     });
 
-    return () => {
-      channel.removeChannel(infoListener);
-      channel.removeChannel(ackListener);
-      channel.removeChannel(chatListener);
-    };
-  }, [channel, displayName, isScreenSharing, userId]);
+    // Note: channel cleanup is handled by useWebRTC
+  }, [channel, userId]);
 
   // Fetch meeting details
   useEffect(() => {
