@@ -86,6 +86,7 @@ export default function PersonDetailPage() {
   const personId = params.id as string;
 
   const [person, setPerson] = useState<PersonDetail | null>(null);
+  const [isSettingCover, setIsSettingCover] = useState(false);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [companions, setCompanions] = useState<Companion[]>([]);
   const [places, setPlaces] = useState<VisitedPlace[]>([]);
@@ -189,7 +190,29 @@ export default function PersonDetailPage() {
   const mapStyle = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
   if (loading) {
-    return (
+      const handleSetCoverPhoto = async (photoId: string) => {
+    if (!person) return;
+    setIsSettingCover(true);
+    try {
+      const res = await fetch("/api/people/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          photoId: photoId,
+          forceCoverPhotoPersonId: person.id
+        })
+      });
+      if (res.ok) {
+        setPerson(prev => prev ? { ...prev, cover_photo_id: photoId } : prev);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSettingCover(false);
+    }
+  };
+  
+  return (
       <main className="min-h-screen flex flex-col items-center justify-center space-y-4">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Loading person memories...</p>
@@ -719,26 +742,4 @@ export default function PersonDetailPage() {
     </main>
   );
 }
-  const handleSetCoverPhoto = async (photoId: string) => {
-    if (!person) return;
-    setIsSettingCover(true);
-    try {
-      const res = await fetch("/api/people/assign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          photoId: photoId,
-          forceCoverPhotoPersonId: person.id
-        })
-      });
-      if (res.ok) {
-        setPerson(prev => prev ? { ...prev, cover_photo_id: photoId } : prev);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSettingCover(false);
-    }
-  };
-  
-  
+
