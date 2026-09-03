@@ -98,64 +98,87 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
     const runBiometrics = async () => {
       if (!isOpen || !webcamRef.current || !webcamRef.current.video) return;
       try {
-        if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
+        if (!faceapi.nets.tinyFaceDetector.isLoaded) {
           setStatusText("Initializing Neural Engine...");
-          await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
-          await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+          await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+          await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models');
           await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
         }
 
+        // Random challenge
         const requiredDirection = Math.random() > 0.5 ? "LEFT" : "RIGHT";
         setStatusText(`LIVENESS: TURN HEAD SLIGHTLY ${requiredDirection}`);
         
         let livenessPassed = false;
         let descriptor: Float32Array | null = null;
         
+        // Use TinyFaceDetectorOptions for 60+ FPS
+        const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.3 });
+
         // 1. Wait for Liveness (Head Turn)
         while (active && !livenessPassed) {
           if (!webcamRef.current?.video) {
-            await new Promise(r => setTimeout(r, 100));
+            await new Promise(r => requestAnimationFrame(r));
             continue;
           }
           
-          const detection = await faceapi.detectSingleFace(
-            webcamRef.current.video, 
-            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 })
-          ).withFaceLandmarks();
+          const detection = await faceapi.detectSingleFace(webcamRef.current.video, options)
+            .withFaceLandmarks(true);
 
           if (detection) {
+            // Quality Check: Move closer if face is too small
+            const faceWidth = detection.detection.box.width;
+            const videoWidth = webcamRef.current.video.videoWidth;
+            if (faceWidth / videoWidth < 0.15) {
+              setStatusText("MOVE CLOSER TO CAMERA");
+              await new Promise(r => setTimeout(r, 100));
+              continue;
+            } else if (detection.detection.score < 0.6) {
+              setStatusText("IMPROVE LIGHTING / FACE CAMERA");
+              await new Promise(r => setTimeout(r, 100));
+              continue;
+            }
+
             const ratio = getYawRatio(detection.landmarks);
             
             // Check if they turned their head in the correct direction
-            if ((requiredDirection === "LEFT" && ratio < 0.65) || (requiredDirection === "RIGHT" && ratio > 1.5)) {
+            // Note: Camera is mirrored visually, but detection coordinates are unmirrored.
+            // When user turns LEFT, their nose points to the RIGHT side of the image -> ratio > 1.5
+            // When user turns RIGHT, their nose points to the LEFT side of the image -> ratio < 0.65
+            if ((requiredDirection === "LEFT" && ratio > 1.5) || (requiredDirection === "RIGHT" && ratio < 0.65)) {
               livenessPassed = true;
-              setStatusText("Liveness Verified! Look at the camera.");
+              setStatusText("Liveness Verified! Please look straight at the camera.");
               break;
+            } else {
+              setStatusText(`LIVENESS: TURN HEAD SLIGHTLY ${requiredDirection}`);
             }
           }
-          await new Promise(r => setTimeout(r, 100));
+          await new Promise(r => requestAnimationFrame(r));
         }
 
         // 2. Wait for user to look straight at the camera again before extraction
-        setStatusText("Liveness Verified! Please look straight at the camera.");
         let isLookingStraight = false;
+        let straightFrames = 0;
 
         while (active && !isLookingStraight) {
           if (!webcamRef.current?.video) break;
-          const detection = await faceapi.detectSingleFace(
-            webcamRef.current.video, 
-            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 })
-          ).withFaceLandmarks();
+          const detection = await faceapi.detectSingleFace(webcamRef.current.video, options)
+            .withFaceLandmarks(true);
 
           if (detection) {
             const ratio = getYawRatio(detection.landmarks);
             // Looking straight means left and right distances are roughly equal (ratio near 1.0)
             if (ratio > 0.8 && ratio < 1.25) {
-              isLookingStraight = true;
-              break;
+              straightFrames++;
+              if (straightFrames >= 3) {
+                isLookingStraight = true;
+                break;
+              }
+            } else {
+              straightFrames = 0;
             }
           }
-          await new Promise(r => setTimeout(r, 80));
+          await new Promise(r => requestAnimationFrame(r));
         }
 
         if (!active) return;
@@ -164,16 +187,15 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
         // 3. Extract final descriptor while looking straight
         while (active && !descriptor) {
           if (!webcamRef.current?.video) break;
-          const detection = await faceapi.detectSingleFace(
-            webcamRef.current.video, 
-            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 })
-          ).withFaceLandmarks().withFaceDescriptor();
+          const detection = await faceapi.detectSingleFace(webcamRef.current.video, options)
+            .withFaceLandmarks(true)
+            .withFaceDescriptor();
 
           if (detection) {
             descriptor = detection.descriptor;
             break;
           }
-          await new Promise(r => setTimeout(r, 80));
+          await new Promise(r => requestAnimationFrame(r));
         }
 
         if (descriptor && active) {
