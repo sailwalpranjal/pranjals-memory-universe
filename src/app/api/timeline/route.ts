@@ -33,11 +33,11 @@ export async function GET() {
       .order('captured_at', { ascending: false, nullsFirst: false })
       .order('imported_at', { ascending: false });
 
-    if (isGuest) {
+    if (isGuest && !isAdmin) {
       const { data: faces } = await supabase.from('photo_faces').select('photo_id').eq('person_id', guestToken.value);
       const photoIds = faces?.map(f => f.photo_id) || [];
       if (photoIds.length === 0) {
-        return NextResponse.json({ photos: [] });
+        return NextResponse.json({ timeline: [] });
       }
       query = query.in('id', photoIds);
     }

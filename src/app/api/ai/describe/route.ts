@@ -23,19 +23,30 @@ export async function POST(request: Request) {
 
     const { data: photo, error } = await supabase
       .from('photos')
-      .select('storage_path, mime_type')
+      .select('storage_path, cloudinary_url, mime_type')
       .eq('id', photoId)
       .single();
 
     if (error || !photo) throw new Error('Photo not found');
 
-    const { data: fileData, error: fileError } = await supabase.storage
-      .from('memories')
-      .download(photo.storage_path);
-      
-    if (fileError || !fileData) throw new Error('Failed to download image data');
-    const arrayBuffer = await fileData.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    let buffer: Buffer;
+    
+    if (photo.cloudinary_url) {
+      const res = await fetch(photo.cloudinary_url);
+      if (!res.ok) throw new Error('Failed to fetch image from Cloudinary');
+      const arrayBuffer = await res.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    } else if (photo.storage_path) {
+      const { data: fileData, error: fileError } = await supabase.storage
+        .from('memories')
+        .download(photo.storage_path);
+        
+      if (fileError || !fileData) throw new Error('Failed to download image data from storage');
+      const arrayBuffer = await fileData.arrayBuffer();
+      buffer = Buffer.from(arrayBuffer);
+    } else {
+      throw new Error('No valid image URL found');
+    }
     
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({

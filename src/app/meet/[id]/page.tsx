@@ -18,10 +18,19 @@ import {
   Edit3,
   Trash2,
   PictureInPicture,
-  Puzzle,
+  Puzzle, User,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
+import { useWebRTC } from "@/hooks/useWebRTC";
+
+// Minimal Supabase client for signaling
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+);
+
 
 declare global {
   interface DocumentPictureInPicture {
@@ -65,6 +74,8 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const videoStageRef = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
+    const [userId] = useState(() => Math.random().toString(36).substring(7));
+    const { remoteStreams } = useWebRTC(params.id as string, supabase, stream, userId);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -446,45 +457,50 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
           )}
 
           <div
-            ref={videoContainerRef}
-            className={`relative transition-all duration-300 ${
-              isPuzzleActive
-                ? "absolute bottom-8 right-8 md:bottom-10 md:right-10 w-48 md:w-72 aspect-video z-20 rounded-2xl shadow-2xl border-white/20"
-                : "w-full h-full max-h-[75vh] md:max-h-[82vh] aspect-[16/9] rounded-3xl"
-            } overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center`}
-          >
-            {videoEnabled ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-                style={{
-                  transform: isScreenSharing ? "none" : "scaleX(-1)",
-                }}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="w-20 h-20 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-primary text-2xl font-light">
-                  P
+              ref={videoContainerRef}
+              className={`relative transition-all duration-300 ${
+                isPuzzleActive
+                  ? "absolute bottom-8 right-8 md:bottom-10 md:right-10 w-48 md:w-72 aspect-video z-20 rounded-2xl shadow-2xl border-white/20"
+                  : "w-full h-full max-h-[75vh] md:max-h-[82vh] aspect-[16/9] rounded-3xl"
+              } overflow-hidden flex items-center justify-center p-2`}
+            >
+              <div className={`w-full h-full grid gap-4 ${remoteStreams.size === 0 ? 'grid-cols-1' : remoteStreams.size === 1 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                <div className={`relative w-full h-full rounded-2xl overflow-hidden border border-white/10 ${remoteStreams.size > 0 ? '' : 'col-span-full'}`}>
+                  {videoEnabled ? (
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                      style={{
+                        transform: isScreenSharing ? "none" : "scaleX(-1)",
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900">
+                      <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/10">
+                        <User className="w-8 h-8 text-white/40" />
+                      </div>
+                      <span className="text-white/50 text-sm font-medium">Camera Off</span>
+                    </div>
+                  )}
+                  <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-xl text-xs font-medium text-white flex items-center space-x-2 border border-white/10">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>You</span>
+                  </div>
+                  {isScreenSharing && (
+                    <div className="absolute top-4 right-4 bg-sky-500/80 text-white px-2.5 py-1 rounded-xl text-[10px] font-mono tracking-wider">
+                      SCREEN SHARING ACTIVE
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm font-medium text-foreground">Camera is turned off</p>
+                
+                {Array.from(remoteStreams.entries()).map(([id, s]) => (
+                  <RemoteVideo key={id} stream={s} />
+                ))}
               </div>
-            )}
-
-            {/* Bottom Stream Status */}
-            <div className="absolute bottom-4 left-4 flex items-center space-x-2 z-10 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-xl text-[11px] font-mono border border-white/10">
-              <span>Pranjal (Host)</span>
-              {!audioEnabled && <MicOff className="w-3 h-3 text-rose-400" />}
             </div>
-
-            {isScreenSharing && (
-              <div className="absolute top-4 right-4 bg-sky-500/80 text-white px-2.5 py-1 rounded-xl text-[10px] font-mono tracking-wider">
-                SCREEN SHARING ACTIVE
-              </div>
-            )}
-          </div>
         </div>
 
         {/* ── RIGHT: Sidebar (Chat / People / Details) ───────────── */}
@@ -780,3 +796,16 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
     </div>
   );
 }
+const RemoteVideo = ({ stream, isSpeaking }: { stream: MediaStream, isSpeaking?: boolean }) => {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.srcObject = stream;
+  }, [stream]);
+  return (
+    <div className={`relative w-full h-full rounded-2xl overflow-hidden border ${isSpeaking ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]' : 'border-white/10'}`}>
+      <video ref={ref} autoPlay playsInline className="w-full h-full object-cover" />
+    </div>
+  );
+};
+
+

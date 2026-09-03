@@ -915,11 +915,12 @@ export default function PhotoEditorModal({
                             <div
                               key={p.id}
                               className="px-3 py-2 text-xs text-foreground hover:bg-white/10 cursor-pointer"
-                              onClick={() => {
-                                setPersonInput(p.name);
-                                handleTagPerson(p.name);
-                                setShowPersonSuggestions(false);
-                              }}
+                              onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  setPersonInput(p.name);
+                                  handleTagPerson(p.name);
+                                  setShowPersonSuggestions(false);
+                                }}
                             >
                               {p.name}
                             </div>

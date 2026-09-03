@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       // Create a dummy photo for each
       const { data: photo } = await supabase
         .from('photos')
-        .insert({ original_filename: `admin_enrollment_${Date.now()}_${i}.jpg`, visibility: 'PRIVATE' })
+        .insert({ original_filename: `admin_enrollment_${Date.now()}_${i}.jpg`, visibility: 'PRIVATE', is_archived: true })
         .select()
         .single();
         

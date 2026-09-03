@@ -15,15 +15,7 @@ export function middleware(request: NextRequest) {
     '/settings'
   ];
   
-  const guestAllowedPaths = [
-    '/timeline',
-    '/puzzles',
-    '/collections',
-    '/people',
-    '/places',
-    '/search',
-    '/meet'
-  ];
+  const guestAllowedPaths = ['/timeline']; // Strictly restrict guests to their own timeline
 
   const { pathname } = request.nextUrl;
 

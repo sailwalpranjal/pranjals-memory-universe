@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
     const { data: matches, error } = await supabase.rpc('match_faces', {
       query_embedding: `[${descriptor.join(',')}]`,
-      match_threshold: 0.94,
+      match_threshold: 0.75,
       match_count: 1,
     });
 
@@ -49,9 +49,15 @@ export async function POST(request: Request) {
         .single();
 
       if (person) {
+        // Enforce strict threshold for Admin, but relaxed for Guests (since they weren't enrolled with high-res webcam)
+        if (person.name === 'Pranjal (Admin)' && bestMatch.similarity < 0.92) {
+            return NextResponse.json({ success: false, isAdmin: false, error: 'Identity Unknown - Admin threshold not met' }, { status: 401 });
+        }
+        
         rateLimitMap.delete(ip);
         
         if (person.name === 'Pranjal (Admin)') {
+          cookies().delete('pranjal_guest_token');
           cookies().set('pranjal_admin_token', 'true', {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
@@ -60,6 +66,7 @@ export async function POST(request: Request) {
           });
           return NextResponse.json({ success: true, isAdmin: true, name: person.name, similarity: bestMatch.similarity });
         } else {
+          cookies().delete('pranjal_admin_token');
           cookies().set('pranjal_guest_token', bestMatch.person_id, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
