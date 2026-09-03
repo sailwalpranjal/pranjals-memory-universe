@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Settings,
   Download,
+  Camera,
   Loader2,
   Check,
   Database,
