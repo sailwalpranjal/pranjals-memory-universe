@@ -187,10 +187,7 @@ export default function PersonDetailPage() {
     }
   };
 
-  const mapStyle = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-
-  if (loading) {
-      const handleSetCoverPhoto = async (photoId: string) => {
+    const handleSetCoverPhoto = async (photoId: string) => {
     if (!person) return;
     setIsSettingCover(true);
     try {
@@ -211,6 +208,9 @@ export default function PersonDetailPage() {
       setIsSettingCover(false);
     }
   };
+const mapStyle = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
+
+  if (loading) {
   
   return (
       <main className="min-h-screen flex flex-col items-center justify-center space-y-4">
@@ -508,7 +508,7 @@ export default function PersonDetailPage() {
               const meta = photo.photo_metadata;
               const locationText = [meta?.city, meta?.country].filter(Boolean).join(", ");
 
-              return (
+return (
                 <div
                   key={photo.id}
                   onClick={() => setActiveLightboxPhoto(photo)}
