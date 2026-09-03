@@ -70,6 +70,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
         const requiredDirection = Math.random() > 0.5 ? "CHALLENGE_LEFT" : "CHALLENGE_RIGHT";
         
         let consecutiveStraight = 0;
+        let shouldAuthenticate = false;
         const embeddingsToFuse: Float32Array[] = [];
         const requiredEmbeddings = 1; // Need 2 consistent reads
 
@@ -160,6 +161,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
                embeddingsToFuse.push(fullDet.descriptor);
                if (embeddingsToFuse.length >= requiredEmbeddings) {
                  setAuthState("AUTHENTICATING");
+                 shouldAuthenticate = true;
                  break;
                }
              }
@@ -168,7 +170,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
           await new Promise(r => requestAnimationFrame(r));
         }
 
-        if (active && stateRef.current === "AUTHENTICATING") {
+        if (active && shouldAuthenticate) {
           setStatusMessage("Verifying biometric template...");
           // Send the first reliable embedding (fusion logic can also be averaged, but taking the best quality is usually enough)
           const res = await fetch('/api/auth/face', {
