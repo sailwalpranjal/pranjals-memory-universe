@@ -92,7 +92,6 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
   const [loading, setLoading] = useState(false);
   const [statusText, setStatusText] = useState<string>("Analyzing...");
   const [error, setError] = useState<string | null>(null);
-  const [challengeDirection, setChallengeDirection] = useState<"LEFT" | "RIGHT" | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -107,7 +106,6 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
         }
 
         const requiredDirection = Math.random() > 0.5 ? "LEFT" : "RIGHT";
-        setChallengeDirection(requiredDirection);
         setStatusText(`LIVENESS: TURN HEAD SLIGHTLY ${requiredDirection}`);
         
         let livenessPassed = false;
@@ -194,6 +192,7 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
     }
     
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const authenticateWithServer = async (descriptorArray: number[]) => {

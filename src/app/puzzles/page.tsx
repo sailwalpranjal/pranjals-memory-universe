@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { 
@@ -85,6 +85,7 @@ function ConnectionsGame({ onBack }: { onBack: () => void }) {
       <div className="grid grid-cols-2 gap-4">
         {photos.map(p => (
           <div key={p.id} className="relative w-64 h-64 rounded-xl overflow-hidden border border-border bg-black">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.url} className="absolute inset-0 w-full h-full object-contain" alt="" />
           </div>
         ))}
@@ -215,7 +216,7 @@ function GeoguessrGame({ onBack }: { onBack: () => void }) {
         </div>
         
         <div className="flex-1 relative rounded-2xl overflow-hidden border border-border bg-black/50">
-          <img src={photo.url} className="absolute inset-0 w-full h-full object-contain" alt="Guess location" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}`n            <img src={photo.url} className="absolute inset-0 w-full h-full object-contain" alt="Guess location" />
         </div>
       </div>
       
