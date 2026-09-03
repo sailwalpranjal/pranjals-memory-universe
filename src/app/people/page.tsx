@@ -288,10 +288,10 @@ export default function PeoplePage() {
                 setMergeMode(!mergeMode);
                 setSelectedPersonIds([]);
               }}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-md ${
                 mergeMode
-                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                  : "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border/50"
+                  ? "bg-amber-500 text-amber-950 border border-amber-400 font-bold"
+                  : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30"
               }`}
             >
               <Merge className="w-4 h-4" />
