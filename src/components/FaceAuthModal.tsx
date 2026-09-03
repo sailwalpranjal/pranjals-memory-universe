@@ -71,7 +71,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
         
         let consecutiveStraight = 0;
         const embeddingsToFuse: Float32Array[] = [];
-        const requiredEmbeddings = 2; // Need 2 consistent reads
+        const requiredEmbeddings = 1; // Need 2 consistent reads
 
         while (active) {
           const currentState = stateRef.current;
