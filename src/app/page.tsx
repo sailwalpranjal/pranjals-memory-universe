@@ -288,6 +288,21 @@ export default function Home() {
       {isAdmin && (
         <>
           {/* FEATURED PHOTO */}
+          
+          {/* EMPTY STATE */}
+          {!hasContent && stats && (
+            <section className="px-6 md:px-10 py-24 max-w-7xl mx-auto w-full text-center relative z-10 flex flex-col items-center">
+              <Camera className="w-12 h-12 text-emerald-500/50 mb-6" />
+              <h2 className="text-2xl font-light tracking-widest text-white uppercase mb-4">Universe is Empty</h2>
+              <p className="text-muted-foreground font-mono text-sm max-w-md mx-auto mb-8">
+                Your archive has been initialized, but no memories have been captured yet.
+              </p>
+              <Link href="/gallery" className="px-8 py-3 bg-white text-black text-xs font-bold tracking-widest uppercase hover:bg-emerald-400 transition-colors">
+                Start Capturing
+              </Link>
+            </section>
+          )}
+
           {hasContent && stats.latestPhoto && (
             <section className="px-6 md:px-10 py-16 max-w-7xl mx-auto w-full relative z-10">
               <div className="flex items-center justify-between mb-8">
