@@ -75,7 +75,7 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
   const videoStageRef = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
     const [userId] = useState(() => Math.random().toString(36).substring(7));
-    const { remoteStreams } = useWebRTC(params.id as string, supabase, stream, userId);
+    const { remoteStreams, channel } = useWebRTC(params.id as string, supabase, stream, userId);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -89,6 +89,7 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
 
   // Participant display identity
   const [displayName, setDisplayName] = useState("Pranjal");
+  const [participants, setParticipants] = useState<Record<string, {name: string, isScreenSharing?: boolean}>>({});
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempNameInput, setTempNameInput] = useState("");
 
@@ -100,7 +101,13 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("pranjal_meet_display_name");
-      if (stored) setDisplayName(stored);
+      if (stored) {
+        setDisplayName(stored);
+      } else {
+        fetch("/api/auth/me").then(res => res.json()).then(data => {
+          if (data.name) setDisplayName(data.name);
+        });
+      }
     }
   }, []);
 
@@ -157,6 +164,49 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
 
   const [copiedLink, setCopiedLink] = useState(false);
   const [elapsedSecs, setElapsedSecs] = useState(0);
+
+  
+  useEffect(() => {
+    if (!channel) return;
+    
+    // Broadcast my info when I join or update name
+    channel.send({
+      type: 'broadcast',
+      event: 'user-info',
+      payload: { userId, name: displayName, isScreenSharing }
+    });
+
+    const infoListener = channel.on('broadcast', { event: 'user-info' }, ({ payload }) => {
+      setParticipants(prev => ({
+        ...prev,
+        [payload.userId]: { name: payload.name, isScreenSharing: payload.isScreenSharing }
+      }));
+      // send mine back
+      channel.send({
+        type: 'broadcast',
+        event: 'user-info-ack',
+        payload: { userId, name: displayName, isScreenSharing }
+      });
+    });
+
+    const ackListener = channel.on('broadcast', { event: 'user-info-ack' }, ({ payload }) => {
+      setParticipants(prev => ({
+        ...prev,
+        [payload.userId]: { name: payload.name, isScreenSharing: payload.isScreenSharing }
+      }));
+    });
+
+    const chatListener = channel.on('broadcast', { event: 'chat-message' }, ({ payload }) => {
+      setMessages(prev => [...prev, payload]);
+      setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    });
+
+    return () => {
+      channel.removeChannel(infoListener);
+      channel.removeChannel(ackListener);
+      channel.removeChannel(chatListener);
+    };
+  }, [channel, displayName, isScreenSharing, userId]);
 
   // Fetch meeting details
   useEffect(() => {
@@ -249,6 +299,13 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
         screenTrackRef.current = screenTrack;
         setIsScreenSharing(true);
 
+        if (stream) {
+          const audioTrack = stream.getAudioTracks()[0];
+          if (audioTrack) screenStream.addTrack(audioTrack);
+        }
+
+        setStream(screenStream);
+
         if (videoRef.current) {
           videoRef.current.srcObject = screenStream;
         }
@@ -257,8 +314,8 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
           setIsScreenSharing(false);
           initMedia();
         };
-      } catch {
-        // Screen share cancelled
+      } catch (err) {
+        console.error(err);
       }
     }
   };
@@ -315,6 +372,13 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
     };
 
     setMessages((prev) => [...prev, newMsg]);
+    if (channel) {
+      channel.send({
+        type: 'broadcast',
+        event: 'chat-message',
+        payload: newMsg
+      });
+    }
     setChatInput("");
     setTimeout(() => chatBottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   };
@@ -358,7 +422,7 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
   return (
     <div className="min-h-screen bg-zinc-950 text-foreground flex flex-col overflow-hidden select-none">
       {/* Top Meeting Bar */}
-      <header className="h-14 px-6 bg-zinc-950/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between z-20 shrink-0">
+      <header className="min-h-14 py-2 px-4 bg-zinc-950/80 backdrop-blur-md border-b border-white/5 flex flex-wrap items-center justify-between gap-2 z-20 shrink-0">
         <div className="flex items-center space-x-3">
           <Link
             href="/meet"
@@ -497,7 +561,7 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
                 </div>
                 
                 {Array.from(remoteStreams.entries()).map(([id, s]) => (
-                  <RemoteVideo key={id} stream={s} />
+                  <RemoteVideo key={id} stream={s} name={participants[id]?.name || "Guest"} isScreenSharing={participants[id]?.isScreenSharing} />
                 ))}
               </div>
             </div>
@@ -613,32 +677,36 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
             {activeSidebar === "people" && (
               <div className="p-4 space-y-4 overflow-y-auto">
                 <span className="text-[10px] text-muted-foreground uppercase tracking-widest block">
-                  Room Members (1)
+                  Room Members ({Object.keys(participants).length + 1})
                 </span>
+                
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-medium text-xs">
-                      P
+                    <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center font-medium text-xs uppercase">
+                      {displayName[0]}
                     </div>
                     <div>
-                      <p className="text-xs font-medium text-foreground">Pranjal</p>
-                      <p className="text-[10px] text-muted-foreground">Host</p>
+                      <p className="text-xs font-medium text-foreground">{displayName} (You)</p>
+                      <p className="text-[10px] text-muted-foreground">Local</p>
                     </div>
                   </div>
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 </div>
 
-                {meeting?.people && (
-                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
-                      Invited Guest
-                    </span>
-                    <p className="text-sm font-medium text-foreground">{meeting.people.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Linked to your Universe people archive.
-                    </p>
+                {Object.entries(participants).map(([id, p]) => (
+                  <div key={id} className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center font-medium text-xs uppercase">
+                        {p.name?.[0] || 'G'}
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-foreground">{p.name || 'Guest'}</p>
+                        <p className="text-[10px] text-muted-foreground">Remote Participant</p>
+                      </div>
+                    </div>
+                    <span className="w-2 h-2 rounded-full bg-sky-500" />
                   </div>
-                )}
+                ))}
               </div>
             )}
 
@@ -696,7 +764,7 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
       </div>
 
       {/* Bottom Floating Control Bar */}
-      <footer className="h-20 bg-zinc-950/90 backdrop-blur-md border-t border-white/5 flex items-center justify-center space-x-3 px-6 z-30 shrink-0">
+      <footer className="h-auto min-h-[80px] py-4 bg-zinc-950/90 backdrop-blur-md border-t border-white/5 flex items-center justify-center gap-2 px-4 z-30 shrink-0 flex-wrap">
         
         {/* Features: Puzzle, PIP */}
         <button
@@ -796,14 +864,23 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
     </div>
   );
 }
-const RemoteVideo = ({ stream, isSpeaking }: { stream: MediaStream, isSpeaking?: boolean }) => {
+const RemoteVideo = ({ stream, isSpeaking, name, isScreenSharing }: { stream: MediaStream, isSpeaking?: boolean, name?: string, isScreenSharing?: boolean }) => {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     if (ref.current) ref.current.srcObject = stream;
   }, [stream]);
   return (
     <div className={`relative w-full h-full rounded-2xl overflow-hidden border ${isSpeaking ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]' : 'border-white/10'}`}>
-      <video ref={ref} autoPlay playsInline className="w-full h-full object-cover" />
+      <video ref={ref} autoPlay playsInline className={`w-full h-full ${isScreenSharing ? 'object-contain bg-black' : 'object-cover'}`} />
+      <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-xl text-xs font-medium text-white flex items-center space-x-2 border border-white/10">
+        <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+        <span>{name || "Guest"}</span>
+      </div>
+      {isScreenSharing && (
+        <div className="absolute top-4 right-4 bg-sky-500/80 text-white px-2.5 py-1 rounded-xl text-[10px] font-mono tracking-wider">
+          SCREEN SHARING
+        </div>
+      )}
     </div>
   );
 };

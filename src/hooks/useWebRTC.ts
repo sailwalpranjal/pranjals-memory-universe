@@ -10,6 +10,11 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
   const peersRef = useRef<Map<string, PeerConnection>>(new Map());
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const localStreamRef = useRef<MediaStream | null>(localStream);
+
+  useEffect(() => {
+    localStreamRef.current = localStream;
+  }, [localStream]);
 
   useEffect(() => {
     if (!roomId || !supabase || !userId) return;
@@ -33,8 +38,8 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
 
       peersRef.current.set(targetUserId, { pc, stream: remoteStream });
 
-      if (localStream) {
-        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current!));
       }
 
       pc.ontrack = (event) => {
@@ -127,7 +132,7 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
       peersRef.current.clear();
       channel.unsubscribe();
     };
-  }, [roomId, supabase, userId, localStream]);
+  }, [roomId, supabase, userId]);
 
   // Handle stream updates
   useEffect(() => {
@@ -146,5 +151,5 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
     });
   }, [localStream]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { remoteStreams };
+  return { remoteStreams, channel: channelRef.current };
 }
