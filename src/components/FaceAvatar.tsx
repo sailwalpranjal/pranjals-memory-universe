@@ -156,13 +156,15 @@ export default function FaceAvatar({
         let sy = centerY - side / 2;
 
         // Clamp crop bounds within image boundaries
-        sx = Math.max(0, Math.min(img.naturalWidth - side, sx));
-        sy = Math.max(0, Math.min(img.naturalHeight - side, sy));
-        const sWidth = Math.min(img.naturalWidth - sx, Math.max(1, side));
-        const sHeight = Math.min(img.naturalHeight - sy, Math.max(1, side));
-
+        // Ensure square aspect ratio
+        let finalSide = side;
+        if (sx < 0) { finalSide += sx; sx = 0; }
+        if (sy < 0) { finalSide += sy; sy = 0; }
+        if (sx + finalSide > img.naturalWidth) { finalSide = img.naturalWidth - sx; }
+        if (sy + finalSide > img.naturalHeight) { finalSide = img.naturalHeight - sy; }
+        
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, sx, sy, finalSide, finalSide, 0, 0, canvas.width, canvas.height);
       } else {
         // Fallback: square center crop of entire photo
         const minDim = Math.min(img.naturalWidth, img.naturalHeight);

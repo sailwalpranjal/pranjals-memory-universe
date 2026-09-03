@@ -4,6 +4,7 @@ import type { SupabaseClient, RealtimeChannel } from '@supabase/supabase-js';
 interface PeerConnection {
   pc: RTCPeerConnection;
   stream: MediaStream;
+  iceQueue: RTCIceCandidateInit[];
 }
 
 export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream: MediaStream | null, userId: string) {
@@ -22,6 +23,19 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
     const channel = supabase.channel(`meet-${roomId}`);
     channelRef.current = channel;
 
+    const cleanupPeer = (targetUserId: string) => {
+      const peer = peersRef.current.get(targetUserId);
+      if (peer) {
+        peer.pc.close();
+        peersRef.current.delete(targetUserId);
+        setRemoteStreams(prev => {
+          const next = new Map(prev);
+          next.delete(targetUserId);
+          return next;
+        });
+      }
+    };
+
     const createPeer = (targetUserId: string, initiator: boolean) => {
       if (peersRef.current.has(targetUserId)) return peersRef.current.get(targetUserId)!.pc;
 
@@ -36,7 +50,7 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
         return next;
       });
 
-      peersRef.current.set(targetUserId, { pc, stream: remoteStream });
+      peersRef.current.set(targetUserId, { pc, stream: remoteStream, iceQueue: [] });
 
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current!));
@@ -58,12 +72,7 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
 
       pc.onconnectionstatechange = () => {
         if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-          setRemoteStreams(prev => {
-            const next = new Map(prev);
-            next.delete(targetUserId);
-            return next;
-          });
-          peersRef.current.delete(targetUserId);
+          cleanupPeer(targetUserId);
         }
       };
 
@@ -88,10 +97,23 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
           createPeer(payload.senderUserId, true);
         }
       })
+      .on('broadcast', { event: 'user-left' }, ({ payload }) => {
+        cleanupPeer(payload.senderUserId);
+      })
       .on('broadcast', { event: 'webrtc-offer' }, async ({ payload }) => {
         if (payload.targetUserId === userId) {
           const pc = createPeer(payload.senderUserId, false);
           await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+          
+          // Process queued ICE candidates
+          const peer = peersRef.current.get(payload.senderUserId);
+          if (peer && peer.iceQueue.length > 0) {
+            for (const candidate of peer.iceQueue) {
+              await pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+            }
+            peer.iceQueue = [];
+          }
+
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           channel.send({
@@ -106,6 +128,13 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
           const peer = peersRef.current.get(payload.senderUserId);
           if (peer) {
             await peer.pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+            // Process queued ICE candidates
+            if (peer.iceQueue.length > 0) {
+              for (const candidate of peer.iceQueue) {
+                await peer.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(console.error);
+              }
+              peer.iceQueue = [];
+            }
           }
         }
       })
@@ -113,7 +142,11 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
         if (payload.targetUserId === userId) {
           const peer = peersRef.current.get(payload.senderUserId);
           if (peer) {
-            await peer.pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+            if (peer.pc.remoteDescription) {
+              await peer.pc.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(console.error);
+            } else {
+              peer.iceQueue.push(payload.candidate);
+            }
           }
         }
       })
@@ -127,14 +160,24 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
         }
       });
 
+    const handleUnload = () => {
+      channel.send({
+        type: 'broadcast',
+        event: 'user-left',
+        payload: { senderUserId: userId }
+      });
+    };
+    window.addEventListener('beforeunload', handleUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+      handleUnload();
       peersRef.current.forEach(peer => peer.pc.close());
       peersRef.current.clear();
       channel.unsubscribe();
     };
-  }, [roomId, supabase, userId]);
+  }, [roomId, supabase, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Handle stream updates
   useEffect(() => {
     peersRef.current.forEach(({ pc }) => {
       const senders = pc.getSenders();

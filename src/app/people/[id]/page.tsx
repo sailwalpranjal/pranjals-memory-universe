@@ -262,13 +262,20 @@ const mapStyle = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.js
         <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
           {/* Large Face Avatar */}
           <div className="relative">
-            <FaceAvatar
-              photoUrl={person.coverPhotoUrl}
-              box={person.boundingBox as unknown as undefined}
-              size={140}
-              alt={person.name}
-              className="ring-4 ring-primary/20 shadow-2xl"
-            />
+            <div className="relative group cursor-pointer" onClick={() => {
+              alert("To change the profile picture, click any photo below and select 'Set as Profile Picture' from the sidebar.");
+            }}>
+              <FaceAvatar
+                photoUrl={person.coverPhotoUrl}
+                box={person.boundingBox as unknown as undefined}
+                size={140}
+                alt={person.name}
+                className="ring-4 ring-primary/20 shadow-2xl group-hover:opacity-50 transition-opacity"
+              />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider text-center">Change<br/>Photo</span>
+              </div>
+            </div>
           </div>
 
           {/* Person Info */}

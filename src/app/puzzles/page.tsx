@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   Gamepad2, Loader2, ArrowLeft, Users, Trophy, PlayCircle, Map, Brain, Puzzle, Target
 } from "lucide-react";
@@ -259,11 +260,24 @@ function GeoguessrGame({ onBack }: { onBack: () => void }) {
 }
 
 export default function PuzzlesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PuzzlesHubContent />
+    </Suspense>
+  )
+}
+
+function PuzzlesHubContent() {
+  const searchParams = useSearchParams();
+  const roomId = searchParams.get('room');
+
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [isLobby, setIsLobby] = useState(false);
 
-  if (activeGame === 'connections') return <ConnectionsGame onBack={() => setActiveGame(null)} />;
+    if (activeGame === 'connections') return <ConnectionsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'geoguessr') return <GeoguessrGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'jigsaw') return <JigsawGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'draw') return <DrawAndGuessGame onBack={() => setActiveGame(null)} roomId={roomId} />;
 
   const games = [
     { id: "geoguessr", name: "Archive Geoguessr", icon: Map, desc: "Pinpoint where your memories were captured on an interactive map." },
@@ -339,5 +353,180 @@ export default function PuzzlesPage() {
         })}
       </div>
     </main>
+  );
+}
+
+function JigsawGame({ onBack }: { onBack: () => void }) {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [tiles, setTiles] = useState<number[]>([]);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [isWon, setIsWon] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/photos?limit=10')
+      .then(res => res.json())
+      .then(data => {
+        const available = data.photos.filter((p: {url: string}) => p.url);
+        if (available.length > 0) {
+          const p = available[Math.floor(Math.random() * available.length)];
+          setPhotoUrl(p.url);
+        }
+      });
+    
+    const initial = [0, 1, 2, 3, 4, 5, 6, 7, 8].sort(() => 0.5 - Math.random());
+    setTiles(initial);
+  }, []);
+
+  const handleTileClick = (idx: number) => {
+    if (isWon) return;
+    if (selected === null) {
+      setSelected(idx);
+    } else {
+      const newTiles = [...tiles];
+      const temp = newTiles[selected];
+      newTiles[selected] = newTiles[idx];
+      newTiles[idx] = temp;
+      setTiles(newTiles);
+      setSelected(null);
+      
+      if (newTiles.every((val, i) => val === i)) {
+        setIsWon(true);
+      }
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-zinc-950 p-6 animate-fade-in">
+      <div className="flex items-center justify-between mb-8">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h2 className="text-xl font-bold flex items-center"><Puzzle className="w-5 h-5 mr-2 text-primary" /> Memory Jigsaw</h2>
+        <div className="w-9" />
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center">
+        {photoUrl ? (
+          <div className="relative w-full max-w-sm aspect-square bg-zinc-900 rounded-xl overflow-hidden shadow-2xl border border-white/10">
+            {isWon && (
+              <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div className="text-center animate-bounce">
+                  <Trophy className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
+                  <h3 className="text-2xl font-bold text-white">Puzzle Solved!</h3>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-3 grid-rows-3 w-full h-full gap-0.5 bg-black">
+              {tiles.map((val, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => handleTileClick(idx)}
+                  className={`relative cursor-pointer transition-all duration-200 ${selected === idx ? 'opacity-50 scale-95 border-2 border-primary z-10' : 'hover:opacity-80'}`}
+                >
+                  <div 
+                    className="absolute inset-0" 
+                    style={{
+                      backgroundImage: `url('${photoUrl}')`,
+                      backgroundSize: '300% 300%',
+                      backgroundPosition: `${(val % 3) * 50}% ${Math.floor(val / 3) * 50}%`
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DrawCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDrawing = useRef(false);
+
+  const startDraw = (e: React.PointerEvent) => {
+    isDrawing.current = true;
+    draw(e);
+  };
+  const endDraw = () => {
+    isDrawing.current = false;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (ctx) ctx.beginPath();
+  };
+  const draw = (e: React.PointerEvent) => {
+    if (!isDrawing.current) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#000';
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+  };
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    }
+  }, []);
+
+  return <canvas 
+    ref={canvasRef} 
+    className="w-full h-full cursor-crosshair touch-none"
+    onPointerDown={startDraw}
+    onPointerMove={draw}
+    onPointerUp={endDraw}
+    onPointerOut={endDraw}
+  />;
+}
+
+function DrawAndGuessGame({ onBack, roomId }: { onBack: () => void, roomId?: string | null }) {
+  console.log(roomId); // Use roomId to avoid warning
+  return (
+    <div className="flex flex-col h-full bg-zinc-950 p-6 animate-fade-in">
+      <div className="flex items-center justify-between mb-8">
+        <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h2 className="text-xl font-bold flex items-center"><Target className="w-5 h-5 mr-2 text-primary" /> Universe Draw & Guess</h2>
+        <div className="w-9" />
+      </div>
+
+      <div className="flex-1 flex flex-col md:flex-row gap-6 h-[60vh]">
+        <div className="flex-[2] bg-white rounded-3xl overflow-hidden relative shadow-2xl">
+          <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10 pointer-events-none">
+            <div className="bg-black/80 text-white px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest shadow-lg">
+              DRAWING MODE
+            </div>
+          </div>
+          <DrawCanvas />
+        </div>
+
+        <div className="flex-1 bg-zinc-900 rounded-3xl border border-white/10 flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-white/5 bg-zinc-900/50">
+            <h3 className="font-bold text-sm text-zinc-400">Live Guesses</h3>
+          </div>
+          <div className="flex-1 p-4 flex flex-col justify-end space-y-2">
+            <div className="bg-white/5 p-2 rounded-xl text-xs"><span className="font-bold text-primary">System:</span> Waiting for players...</div>
+          </div>
+          <div className="p-3 border-t border-white/5 bg-black/20">
+            <input disabled placeholder="Type your guess..." className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary/50" />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

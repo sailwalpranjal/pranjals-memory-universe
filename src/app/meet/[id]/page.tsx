@@ -83,6 +83,22 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
 
   // Puzzle State
   const [isPuzzleActive, setIsPuzzleActive] = useState(false);
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const dragRef = useRef({ isDragging: false, startX: 0, startY: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!isPuzzleActive) return;
+    dragRef.current = { isDragging: true, startX: e.clientX - dragPos.x, startY: e.clientY - dragPos.y };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!dragRef.current.isDragging) return;
+    setDragPos({ x: e.clientX - dragRef.current.startX, y: e.clientY - dragRef.current.startY });
+  };
+  const handlePointerUp = (e: React.PointerEvent) => {
+    dragRef.current.isDragging = false;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+  };
 
   // Active Tab in Sidebar: chat | people | notes | details
   const [activeSidebar, setActiveSidebar] = useState<"chat" | "people" | "notes" | "details" | null>("chat");
@@ -317,6 +333,7 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
         };
       } catch (err) {
         console.error(err);
+        alert("Screen sharing is not supported on this device or was denied.");
       }
     }
   };
@@ -523,21 +540,32 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
 
           <div
               ref={videoContainerRef}
+              style={isPuzzleActive ? { transform: `translate(${dragPos.x}px, ${dragPos.y}px)` } : {}}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
               className={`relative transition-all duration-300 ${
                 isPuzzleActive
-                  ? "absolute bottom-8 right-8 md:bottom-10 md:right-10 w-48 md:w-72 aspect-video z-20 rounded-2xl shadow-2xl border-white/20"
+                  ? "absolute bottom-8 right-8 md:bottom-10 md:right-10 w-48 md:w-72 aspect-video z-20 rounded-2xl shadow-2xl border-white/20 cursor-move touch-none"
                   : "w-full h-full max-h-[75vh] md:max-h-[82vh] aspect-[16/9] rounded-3xl"
               } overflow-hidden flex items-center justify-center p-2`}
             >
-              <div className={`w-full h-full grid gap-4 ${remoteStreams.size === 0 ? 'grid-cols-1' : remoteStreams.size === 1 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-                <div className={`relative w-full h-full rounded-2xl overflow-hidden border border-white/10 ${remoteStreams.size > 0 ? '' : 'col-span-full'}`}>
+              <div className={`w-full h-full grid gap-2 md:gap-4 place-items-center ${
+                  remoteStreams.size === 0 ? 'grid-cols-1' :
+                  remoteStreams.size === 1 ? 'grid-cols-1 md:grid-cols-2' :
+                  remoteStreams.size === 2 ? 'grid-cols-2 md:grid-cols-3' :
+                  remoteStreams.size === 3 ? 'grid-cols-2' :
+                  'grid-cols-2 md:grid-cols-3'
+                }`}>
+                <div className={`relative w-full h-full max-h-full rounded-2xl overflow-hidden border border-white/10 shadow-lg bg-black`}>
                   {videoEnabled ? (
                     <video
                       ref={videoRef}
                       autoPlay
                       playsInline
                       muted
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain bg-black"
                       style={{
                         transform: isScreenSharing ? "none" : "scaleX(-1)",
                       }}
@@ -872,7 +900,7 @@ const RemoteVideo = ({ stream, isSpeaking, name, isScreenSharing }: { stream: Me
   }, [stream]);
   return (
     <div className={`relative w-full h-full rounded-2xl overflow-hidden border ${isSpeaking ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]' : 'border-white/10'}`}>
-      <video ref={ref} autoPlay playsInline className={`w-full h-full ${isScreenSharing ? 'object-contain bg-black' : 'object-cover'}`} />
+      <video ref={ref} autoPlay playsInline className={`w-full h-full object-contain bg-black`} />
       <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-xl text-xs font-medium text-white flex items-center space-x-2 border border-white/10">
         <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
         <span>{name || "Guest"}</span>
