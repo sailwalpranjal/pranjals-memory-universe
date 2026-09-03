@@ -827,7 +827,12 @@ export default function PhotoEditorModal({
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addTag())}
                   placeholder="Add tag and press Enter..."
                   className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary/50"
-                />
+                  />
+                  <datalist id="people-suggestions">
+                    {peopleList.map(p => (
+                      <option key={p.id} value={p.name} />
+                    ))}
+                  </datalist>
                 <button
                   onClick={addTag}
                   className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs"
@@ -858,9 +863,10 @@ export default function PhotoEditorModal({
               )}
               <div className="flex items-center space-x-2 pt-1">
                 <input
-                  type="text"
-                  value={personInput}
-                  onChange={(e) => setPersonInput(e.target.value)}
+                    type="text"
+                    list="people-suggestions"
+                    value={personInput}
+                    onChange={(e) => setPersonInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleTagPerson())}
                   placeholder="Identify person (e.g. Rahul, Pranjal)..."
                   className="flex-1 px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary/50"
