@@ -237,10 +237,45 @@ CLOUDINARY_PREFIX=pranjal_universe_`;
       </section>
 
       {/* â”€â”€ Cloudinary Storage Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <section className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
+      
+        {/* BIOMETRIC SECURITY ENGINE */}
+        <div className="space-y-4">
           <h2 className="text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-2">
-            <CloudUpload className="w-4 h-4 text-primary" />
+            <Shield className="w-4 h-4 text-emerald-400" />
+            <span className="text-emerald-400">Biometric Security & Guest Portal</span>
+          </h2>
+          <div className="p-6 bg-emerald-950/20 border border-emerald-500/20 rounded-3xl space-y-6">
+            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+              <div>
+                <h3 className="text-lg font-light tracking-widest uppercase text-white">Neural Face Authentication</h3>
+                <p className="text-sm text-emerald-400/80 mt-1 max-w-lg">
+                  Your system actively uses 128-dimensional facial descriptors with a strict 0.94 cosine similarity threshold.
+                </p>
+              </div>
+              <Link href="/admin/enrollment" className="px-6 py-3 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-all rounded-xl border border-emerald-500/30 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                <Camera className="w-4 h-4" />
+                <span>Train Admin Face</span>
+              </Link>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-emerald-500/20">
+              <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
+                <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-emerald-500 mb-2">Admin Override</h4>
+                <p className="text-xs text-muted-foreground">Admin access is fully encrypted via HttpOnly tokens. Fallback authentication strictly utilizes Vercel environment variables.</p>
+              </div>
+              <div className="bg-black/40 p-4 rounded-2xl border border-white/5">
+                <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-sky-500 mb-2">Guest Isolation Portal</h4>
+                <p className="text-xs text-muted-foreground">When visitors scan their face, the neural net matches their identity and safely restricts their view exclusively to photos they are tagged in.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+        <section className="flex flex-col space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-2">
+              <CloudUpload className="w-4 h-4 text-primary" />
             <span>Cloudinary Online Storage</span>
           </h2>
           <span className="text-[10px] uppercase font-mono px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
