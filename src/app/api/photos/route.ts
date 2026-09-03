@@ -37,8 +37,11 @@ interface PhotoRow {
 export async function GET(request: Request) {
   const cookieStore = cookies();
   const adminToken = cookieStore.get('pranjal_admin_token');
+  const guestToken = cookieStore.get('pranjal_guest_token');
+  const isAdmin = adminToken && adminToken.value === 'true';
+  const isGuest = guestToken && guestToken.value;
   
-  if (!adminToken || !adminToken.value) {
+  if (!isAdmin && !isGuest) {
     return NextResponse.json({ error: 'Unauthorized. Biometric face authentication required.' }, { status: 401 });
   }
 
