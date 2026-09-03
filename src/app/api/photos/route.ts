@@ -1,11 +1,4 @@
-const adminToken = cookieStore.get('pranjal_admin_token');
-    const guestToken = cookieStore.get('pranjal_guest_token');
-    const isAdmin = adminToken && adminToken.value === 'true';
-    const isGuest = guestToken && guestToken.value;
-    
-    if (!isAdmin && !isGuest) {
-      return NextResponse.json({ error: 'Unauthorized. Biometric face authentication required.' }, { status: 401 });
-    }import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { getSignedUrlsForPhotos } from '@/lib/storage';
@@ -149,3 +142,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
+
