@@ -600,6 +600,22 @@ export default function PersonDetailPage() {
                 </p>
               </div>
 
+              
+              <div className="pt-2">
+                <button
+                  onClick={() => handleSetCoverPhoto(activeLightboxPhoto.id)}
+                  disabled={isSettingCover}
+                  className="w-full py-2 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-xl text-xs font-medium transition-colors flex items-center justify-center space-x-2"
+                >
+                  {isSettingCover ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <User className="w-3.5 h-3.5" />
+                  )}
+                  <span>Set as Profile Picture</span>
+                </button>
+              </div>
+
               {activeLightboxPhoto.photo_metadata?.ai_description && (
                 <div className="space-y-1.5">
                   <span className="text-[11px] uppercase tracking-wider text-muted-foreground flex items-center space-x-1">
@@ -703,3 +719,26 @@ export default function PersonDetailPage() {
     </main>
   );
 }
+  const handleSetCoverPhoto = async (photoId: string) => {
+    if (!person) return;
+    setIsSettingCover(true);
+    try {
+      const res = await fetch("/api/people/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          photoId: photoId,
+          forceCoverPhotoPersonId: person.id
+        })
+      });
+      if (res.ok) {
+        setPerson(prev => prev ? { ...prev, cover_photo_id: photoId } : prev);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSettingCover(false);
+    }
+  };
+  
+  
