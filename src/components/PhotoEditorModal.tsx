@@ -108,6 +108,7 @@ export default function PhotoEditorModal({
   // People in this photo state
   const [taggedPeople, setTaggedPeople] = useState<Array<{ id: string; name: string }>>([]);
   const [personInput, setPersonInput] = useState("");
+  const [peopleList, setPeopleList] = useState<Array<{id: string, name: string}>>([]);
   const [isTaggingPerson, setIsTaggingPerson] = useState(false);
 
   const handleTagPerson = async () => {
@@ -137,6 +138,17 @@ export default function PhotoEditorModal({
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Keyboard controls
+  useEffect(() => {
+    fetch("/api/people")
+      .then(res => res.json())
+      .then(data => {
+        if (data.people) {
+          setPeopleList(data.people.map((p: {id: string, name: string}) => ({ id: p.id, name: p.name })));
+        }
+      })
+      .catch(console.error);
+  }, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
