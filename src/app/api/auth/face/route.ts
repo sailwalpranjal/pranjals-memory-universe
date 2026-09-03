@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
     const { data: matches, error } = await supabase.rpc('match_faces', {
       query_embedding: `[${descriptor.join(',')}]`,
-      match_threshold: 0.42,
+      match_threshold: 0.35,
       match_count: 1,
     });
 

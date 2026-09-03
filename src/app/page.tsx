@@ -104,9 +104,10 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
         }
 
         setStatusText("LIVENESS: PLEASE BLINK");
-        let blinkDetected = false;
+        let blinkStarted = false;
+        let livenessPassed = false;
         
-        while (active && !blinkDetected) {
+        while (active && !livenessPassed) {
           if (!webcamRef.current?.video) {
             await new Promise(r => setTimeout(r, 100));
             continue;
@@ -124,8 +125,12 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
             const rightEAR = getEAR(rightEye);
             const avgEAR = (leftEAR + rightEAR) / 2;
 
-            if (avgEAR < 0.22) { // Blink threshold
-              blinkDetected = true;
+            if (avgEAR < 0.22) {
+              blinkStarted = true;
+              setStatusText("BLINK DETECTED - OPEN EYES");
+            } else if (blinkStarted && avgEAR > 0.25) {
+              // Eyes opened again!
+              livenessPassed = true;
               setStatusText("Liveness Verified!");
               livenessRef.current = true;
               break;
@@ -134,8 +139,8 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
           await new Promise(r => setTimeout(r, 80)); // 12 FPS
         }
 
-        if (blinkDetected && active) {
-          await new Promise(r => setTimeout(r, 300)); // wait for eyes to open
+        if (livenessPassed && active) {
+          await new Promise(r => setTimeout(r, 150)); // tiny delay for camera to stabilize
           captureAndAuth();
         }
       } catch (err) {
