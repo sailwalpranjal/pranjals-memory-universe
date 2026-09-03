@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request) {
+export async function GET() {
   const cookieStore = cookies();
   const adminToken = cookieStore.get('pranjal_admin_token');
   const guestToken = cookieStore.get('pranjal_guest_token');
