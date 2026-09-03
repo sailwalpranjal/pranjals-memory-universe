@@ -104,13 +104,13 @@ export default function Home() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
-  const [guestPersonId, setGuestPersonId] = useState<string|null>(null);
+  
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     // Check if cookie exists
-    fetch('/api/auth/status').then(r => r.json()).then(d => { setIsAdmin(d.role === 'admin'); setIsGuest(d.role === 'guest'); setGuestPersonId(d.personId || null); setMounted(true); });
+    fetch('/api/auth/status').then(r => r.json()).then(d => { setIsAdmin(d.role === 'admin'); setIsGuest(d.role === 'guest'); setMounted(true); });
   }, []);
 
   const handleAdminToggle = () => {
