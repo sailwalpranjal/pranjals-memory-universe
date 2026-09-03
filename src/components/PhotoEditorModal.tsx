@@ -928,7 +928,7 @@ export default function PhotoEditorModal({
                     )}
                   </div>
                 <button
-                  onClick={handleTagPerson}
+                  onClick={() => handleTagPerson()}
                   disabled={isTaggingPerson || !personInput.trim()}
                   className="px-3 py-1.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 rounded-xl text-xs font-medium disabled:opacity-40 flex items-center space-x-1"
                 >
