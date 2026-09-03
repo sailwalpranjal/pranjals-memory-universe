@@ -3,5 +3,13 @@ import { cookies } from 'next/headers';
 
 export async function GET() {
   const adminToken = cookies().get('pranjal_admin_token');
-  return NextResponse.json({ authenticated: !!(adminToken && adminToken.value) });
+  const guestToken = cookies().get('pranjal_guest_token');
+  
+  if (adminToken && adminToken.value === 'true') {
+    return NextResponse.json({ authenticated: true, role: 'admin' });
+  } else if (guestToken && guestToken.value) {
+    return NextResponse.json({ authenticated: true, role: 'guest', personId: guestToken.value });
+  }
+  
+  return NextResponse.json({ authenticated: false, role: null });
 }

@@ -179,10 +179,13 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
             body: JSON.stringify({ descriptor: Array.from(embeddingsToFuse[0]) })
           });
           const data = await res.json();
-          if (data.success && data.isAdmin) {
+          if (data.success) {
             setAuthState("SUCCESS");
-            setStatusMessage("Welcome back, Admin.");
-            sessionStorage.setItem('pranjal_admin', 'true');
+            if (data.isAdmin) {
+              setStatusMessage("Welcome back, Admin.");
+            } else if (data.isGuest) {
+              setStatusMessage("Welcome, " + (data.name || "Guest") + ".");
+            }
             setTimeout(onSuccess, 800);
           } else {
             setAuthState("FAILURE");

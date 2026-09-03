@@ -103,12 +103,14 @@ export default function Home() {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestPersonId, setGuestPersonId] = useState<string|null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     // Check if cookie exists
-    fetch('/api/auth/status').then(r => r.json()).then(d => { setIsAdmin(d.authenticated); setMounted(true); });
+    fetch('/api/auth/status').then(r => r.json()).then(d => { setIsAdmin(d.role === 'admin'); setIsGuest(d.role === 'guest'); setGuestPersonId(d.personId || null); setMounted(true); });
   }, []);
 
   const handleAdminToggle = () => {
@@ -156,6 +158,7 @@ export default function Home() {
   }, [isAdmin]);
 
   const hasContent = stats && stats.photoCount > 0;
+  const isAuth = isAdmin || isGuest;
 
   return (
     <main className="min-h-screen flex flex-col relative bg-background">
@@ -245,7 +248,7 @@ export default function Home() {
               <Sparkles className="w-4 h-4" />
               <span>{isAdmin ? 'Generate Memory' : 'Unlock Full Access'}</span>
             </button>
-            {isAdmin && (
+            {isAuth && (
               <Link
                 href="/gallery"
                 className="flex items-center space-x-2 px-8 py-4 rounded-full bg-white/10 border border-white/20 text-white text-sm font-bold tracking-wide uppercase hover:bg-white/20 transition-all backdrop-blur-md"
@@ -264,7 +267,7 @@ export default function Home() {
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ RESTRICTED OVERLAY FOR VISITORS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      {!isAdmin && (
+      {!isAuth && (
         <section className="px-6 md:px-10 py-24 max-w-7xl mx-auto w-full text-center relative z-10 flex flex-col items-center">
           <Lock className="w-12 h-12 text-amber-500/50 mb-6" />
           <h2 className="text-2xl font-extralight tracking-widest text-white mb-4 uppercase">Access Restricted</h2>
@@ -282,7 +285,7 @@ export default function Home() {
       )}
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ ADMIN CONTENT Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      {isAdmin && (
+      {isAuth && (
         <>
           {/* FEATURED PHOTO */}
           

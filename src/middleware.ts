@@ -1,29 +1,40 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const adminCookie = request.cookies.get('admin_auth');
-  const isAdmin = adminCookie?.value === 'authenticated';
+  const adminCookie = request.cookies.get('pranjal_admin_token');
+  const isAdmin = adminCookie?.value === 'true';
 
-  const protectedPaths = [
+  const guestCookie = request.cookies.get('pranjal_guest_token');
+  const isGuest = !!guestCookie?.value;
+
+  const adminOnlyPaths = [
     '/gallery',
-    '/timeline',
     '/make',
     '/lab',
+    '/settings'
+  ];
+  
+  const guestAllowedPaths = [
+    '/timeline',
     '/puzzles',
     '/collections',
     '/people',
     '/places',
     '/search',
-    '/settings',
     '/meet'
   ];
 
   const { pathname } = request.nextUrl;
 
-  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path));
+  const isAdminOnly = adminOnlyPaths.some(path => pathname.startsWith(path));
+  const isGuestAllowed = guestAllowedPaths.some(path => pathname.startsWith(path));
 
-  if (isProtectedPath && !isAdmin) {
+  if (isAdminOnly && !isAdmin) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  if (isGuestAllowed && !isAdmin && !isGuest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 

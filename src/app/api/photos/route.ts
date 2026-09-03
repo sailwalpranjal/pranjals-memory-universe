@@ -1,4 +1,11 @@
-import { NextResponse } from 'next/server';
+const adminToken = cookieStore.get('pranjal_admin_token');
+    const guestToken = cookieStore.get('pranjal_guest_token');
+    const isAdmin = adminToken && adminToken.value === 'true';
+    const isGuest = guestToken && guestToken.value;
+    
+    if (!isAdmin && !isGuest) {
+      return NextResponse.json({ error: 'Unauthorized. Biometric face authentication required.' }, { status: 401 });
+    }import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { getSignedUrlsForPhotos } from '@/lib/storage';
@@ -63,7 +70,7 @@ export async function GET(request: Request) {
       .from('photos')
       .select('*, photo_metadata(*)');
 
-    const personId = searchParams.get('person_id');
+    const personId = isGuest ? guestToken.value : searchParams.get('person_id');
     if (personId) {
       const { data: faces } = await supabase.from('photo_faces').select('photo_id').eq('person_id', personId);
       const photoIds = faces?.map(f => f.photo_id) || [];

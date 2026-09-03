@@ -48,16 +48,26 @@ export async function POST(request: Request) {
         .eq('id', bestMatch.person_id)
         .single();
 
-      if (person && person.name === 'Pranjal (Admin)') {
+      if (person) {
         rateLimitMap.delete(ip);
         
-        cookies().set('pranjal_admin_token', 'true', {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          path: '/',
-        });
-        return NextResponse.json({ success: true, isAdmin: true, similarity: bestMatch.similarity });
+        if (person.name === 'Pranjal (Admin)') {
+          cookies().set('pranjal_admin_token', 'true', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+          });
+          return NextResponse.json({ success: true, isAdmin: true, name: person.name, similarity: bestMatch.similarity });
+        } else {
+          cookies().set('pranjal_guest_token', bestMatch.person_id, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/',
+          });
+          return NextResponse.json({ success: true, isAdmin: false, isGuest: true, personId: bestMatch.person_id, name: person.name, similarity: bestMatch.similarity });
+        }
       }
     }
     
