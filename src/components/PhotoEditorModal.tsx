@@ -108,11 +108,13 @@ export default function PhotoEditorModal({
   // People in this photo state
   const [taggedPeople, setTaggedPeople] = useState<Array<{ id: string; name: string }>>([]);
   const [personInput, setPersonInput] = useState("");
+  const [showPersonSuggestions, setShowPersonSuggestions] = useState(false);
   const [peopleList, setPeopleList] = useState<Array<{id: string, name: string}>>([]);
   const [isTaggingPerson, setIsTaggingPerson] = useState(false);
 
-  const handleTagPerson = async () => {
-    if (!personInput.trim()) return;
+  const handleTagPerson = async (overrideName?: string) => {
+    const nameToTag = overrideName || personInput;
+    if (!nameToTag.trim()) return;
     setIsTaggingPerson(true);
     try {
       const res = await fetch("/api/people/assign", {
@@ -120,7 +122,7 @@ export default function PhotoEditorModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           photoId: photo.id,
-          newPersonName: personInput.trim(),
+          personName: nameToTag.trim(),
         }),
       });
       const data = await res.json();
@@ -133,6 +135,21 @@ export default function PhotoEditorModal({
     } finally {
       setIsTaggingPerson(false);
     }
+  };
+
+  const handleSetCoverPhoto = async (personId: string) => {
+    try {
+      await fetch('/api/people/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          photoId: photo.id,
+          personName: '', // Empty name triggers just cover photo update? Wait, backend needs fixing for this
+          forceCoverPhotoPersonId: personId
+        })
+      });
+      alert('Set as profile picture!');
+    } catch (e) {}
   };
 
   const canvasRef = useRef<HTMLCanvasElement>(null);

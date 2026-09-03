@@ -53,6 +53,19 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Person name cannot be empty' }, { status: 400 });
       }
 
+      // Check if person already exists by name (case-insensitive)
+      const { data: existingByName } = await supabase
+        .from('people')
+        .select('id, name')
+        .ilike('name', trimmedName)
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      if (existingByName && existingByName.length > 0) {
+        finalPersonId = existingByName[0].id;
+        finalPersonName = existingByName[0].name;
+      } else {
+
       const dummyUserId = '00000000-0000-0000-0000-000000000000';
       const { data: newPerson, error: createError } = await supabase
         .from('people')
@@ -70,6 +83,7 @@ export async function POST(request: Request) {
 
       finalPersonId = newPerson.id;
       finalPersonName = newPerson.name;
+      }
     } else if (finalPersonId) {
       // Verify existing person
       const { data: existingPerson, error: personError } = await supabase
