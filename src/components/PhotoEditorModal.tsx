@@ -769,33 +769,46 @@ export default function PhotoEditorModal({
             </div>
 
             {/* Location (City & Country) */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium flex items-center space-x-1">
-                  <MapPin className="w-3 h-3" />
-                  <span>City</span>
-                </label>
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Kyoto"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary/50"
-                />
+            <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium flex items-center space-x-1">
+                      <MapPin className="w-3 h-3" />
+                      <span>City</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="e.g. Kyoto"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      value={country}
+                      onChange={(e) => setCountry(e.target.value)}
+                      placeholder="e.g. Japan"
+                      className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary/50"
+                    />
+                  </div>
+                </div>
+                {photo.photo_metadata?.latitude && photo.photo_metadata?.longitude && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${photo.photo_metadata.latitude},${photo.photo_metadata.longitude}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 flex items-center justify-center space-x-1.5 w-full px-3 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 rounded-xl text-xs font-medium transition-all"
+                  >
+                    <MapPin className="w-3 h-3" />
+                    <span>Get Directions via Google Maps</span>
+                  </a>
+                )}
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                  Country
-                </label>
-                <input
-                  type="text"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  placeholder="e.g. Japan"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-foreground focus:outline-none focus:border-primary/50"
-                />
-              </div>
-            </div>
 
             {/* Semantic Tags */}
             <div className="space-y-2">
