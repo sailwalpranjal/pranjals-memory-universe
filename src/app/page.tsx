@@ -108,11 +108,7 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     // Check if cookie exists
-    const checkAdmin = () => {
-      const hasCookie = document.cookie.includes('pranjal_admin_token=');
-      setIsAdmin(hasCookie);
-    };
-    checkAdmin();
+    fetch('/api/auth/status').then(r => r.json()).then(d => { setIsAdmin(d.authenticated); setMounted(true); });
   }, []);
 
   const handleAdminToggle = () => {
