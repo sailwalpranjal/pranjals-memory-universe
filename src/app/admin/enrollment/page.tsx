@@ -43,7 +43,7 @@ export default function AdminEnrollment() {
             let consecutiveFrames = 0;
 
       while (active) {
-        if (!webcamRef.current?.video) {
+        if (!webcamRef.current?.video || webcamRef.current.video.readyState !== 4 || webcamRef.current.video.videoWidth === 0) {
           await new Promise(r => requestAnimationFrame(r));
           continue;
         }

@@ -80,7 +80,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
             break;
           }
 
-          if (!webcamRef.current?.video) {
+          if (!webcamRef.current?.video || webcamRef.current.video.readyState !== 4 || webcamRef.current.video.videoWidth === 0) {
             await new Promise(r => requestAnimationFrame(r));
             continue;
           }
@@ -151,6 +151,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
             }
           }
           else if (currentState === "EXTRACTING") {
+             if (webcamRef.current.video.videoWidth === 0) { await new Promise(r => requestAnimationFrame(r)); continue; }
              const fullDet = await faceapi.detectSingleFace(webcamRef.current.video, options)
                .withFaceLandmarks(true)
                .withFaceDescriptor();
