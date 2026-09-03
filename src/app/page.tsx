@@ -77,36 +77,43 @@ const UniverseLogo = () => (
 
 
 // --- Liveness Utils ---
-function getEAR(eye: faceapi.Point[]) {
-  const v1 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
-  const v2 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
-  const h = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
-  return (v1 + v2) / (2.0 * h);
+function getYawRatio(landmarks: faceapi.FaceLandmarks68) {
+  const jaw = landmarks.getJawOutline();
+  const nose = landmarks.getNose();
+  // Nose tip is index 3 of nose array (overall index 30). Jaw bounds are 0 and 16.
+  const leftDist = nose[3].x - jaw[0].x;
+  const rightDist = jaw[16].x - nose[3].x;
+  return leftDist / rightDist;
 }
 
 // --- Biometric Auth Modal ---
 const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void; }) => {
   const webcamRef = useRef<Webcam>(null);
   const [loading, setLoading] = useState(false);
-  const [statusText, setStatusText] = useState<string>("Analyzing Map...");
+  const [statusText, setStatusText] = useState<string>("Analyzing...");
   const [error, setError] = useState<string | null>(null);
-  const livenessRef = useRef<boolean>(false);
+  const [challengeDirection, setChallengeDirection] = useState<"LEFT" | "RIGHT" | null>(null);
 
   useEffect(() => {
     let active = true;
-    const runLiveness = async () => {
+    const runBiometrics = async () => {
       if (!isOpen || !webcamRef.current || !webcamRef.current.video) return;
       try {
         if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
-          setStatusText("Loading Biometrics...");
+          setStatusText("Initializing Neural Engine...");
           await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
           await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
+          await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
         }
 
-        setStatusText("LIVENESS: PLEASE BLINK");
-        let blinkStarted = false;
-        let livenessPassed = false;
+        const requiredDirection = Math.random() > 0.5 ? "LEFT" : "RIGHT";
+        setChallengeDirection(requiredDirection);
+        setStatusText(`LIVENESS: TURN HEAD SLIGHTLY ${requiredDirection}`);
         
+        let livenessPassed = false;
+        let descriptor: Float32Array | null = null;
+        
+        // 1. Wait for Liveness (Head Turn)
         while (active && !livenessPassed) {
           if (!webcamRef.current?.video) {
             await new Promise(r => setTimeout(r, 100));
@@ -119,50 +126,56 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
           ).withFaceLandmarks();
 
           if (detection) {
-            const leftEye = detection.landmarks.getLeftEye();
-            const rightEye = detection.landmarks.getRightEye();
-            const leftEAR = getEAR(leftEye);
-            const rightEAR = getEAR(rightEye);
-            const avgEAR = (leftEAR + rightEAR) / 2;
-
-            if (avgEAR < 0.22) {
-              blinkStarted = true;
-              setStatusText("BLINK DETECTED - OPEN EYES");
-            } else if (blinkStarted && avgEAR > 0.25) {
-              // Eyes opened again!
+            const ratio = getYawRatio(detection.landmarks);
+            
+            // Check if they turned their head in the correct direction
+            if ((requiredDirection === "LEFT" && ratio < 0.65) || (requiredDirection === "RIGHT" && ratio > 1.5)) {
               livenessPassed = true;
-              setStatusText("Liveness Verified!");
-              livenessRef.current = true;
+              setStatusText("Liveness Verified! Look at the camera.");
               break;
             }
           }
-          await new Promise(r => setTimeout(r, 80)); // 12 FPS
+          await new Promise(r => setTimeout(r, 100));
         }
 
-        if (livenessPassed && active) {
-          await new Promise(r => setTimeout(r, 150)); // tiny delay for camera to stabilize
-          captureAndAuth();
+        if (!active) return;
+        await new Promise(r => setTimeout(r, 1000)); // Give them 1 sec to look back at the camera
+
+        // 2. Extract final descriptor while looking straight
+        setStatusText("Extracting Facial Features...");
+        while (active && !descriptor) {
+          if (!webcamRef.current?.video) break;
+          const detection = await faceapi.detectSingleFace(
+            webcamRef.current.video, 
+            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 })
+          ).withFaceLandmarks().withFaceDescriptor();
+
+          if (detection) {
+            descriptor = detection.descriptor;
+            break;
+          }
+          await new Promise(r => setTimeout(r, 100));
+        }
+
+        if (descriptor && active) {
+          authenticateWithServer(Array.from(descriptor));
         }
       } catch (err) {
-        console.error("Liveness error:", err);
+        console.error("Biometrics error:", err);
+        setError("Camera error or initialization failed.");
       }
     };
     
     if (isOpen) {
-      livenessRef.current = false;
       setLoading(false);
       setError(null);
-      runLiveness();
+      runBiometrics();
     }
     
     return () => { active = false; };
   }, [isOpen]);
 
-  const captureAndAuth = async () => {
-    if (!webcamRef.current || !livenessRef.current) return;
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) return;
-
+  const authenticateWithServer = async (descriptorArray: number[]) => {
     setLoading(true);
     setError(null);
     setStatusText("Verifying Identity...");
@@ -170,22 +183,17 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
       const res = await fetch('/api/auth/face', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: imageSrc })
+        body: JSON.stringify({ descriptor: descriptorArray })
       });
       const data = await res.json();
       if (data.success && data.isAdmin) {
-        // We rely purely on the HTTP-Only cookie set by the server!
-        // We set a dummy session storage just for instant UI updates.
         sessionStorage.setItem('pranjal_admin', 'true');
         onSuccess();
       } else {
         setError(data.error || "Authentication failed. Face not recognized.");
-        // Restart liveness
-        livenessRef.current = false;
       }
     } catch {
-      setError("Network error during biometric scan.");
-      livenessRef.current = false;
+      setError("Network error during verification.");
     } finally {
       setLoading(false);
     }
@@ -211,10 +219,10 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
             videoConstraints={{ facingMode: "user" }}
             className="w-full h-full object-cover scale-x-[-1]"
           />
-          {(!livenessRef.current || loading) && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
-              <div className="w-10 h-10 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mb-3" />
-              <span className="text-xs text-emerald-400 tracking-widest uppercase animate-pulse">{statusText}</span>
+          {(loading || statusText.includes("LIVENESS") || statusText.includes("Extracting") || statusText.includes("Initializing") || statusText.includes("Verifying")) && (
+            <div className={`absolute inset-0 flex flex-col items-center justify-center ${statusText.includes("LIVENESS") ? "bg-black/20" : "bg-black/70 backdrop-blur-sm"}`}>
+              <div className="w-10 h-10 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mb-3 shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+              <span className="text-xs text-emerald-400 tracking-widest uppercase animate-pulse text-center px-4 drop-shadow-md bg-black/50 py-1 px-3 rounded-full">{statusText}</span>
             </div>
           )}
           
