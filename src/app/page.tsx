@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import * as faceapi from "@vladmandic/face-api";
 
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -97,10 +97,10 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
     const runLiveness = async () => {
       if (!isOpen || !webcamRef.current || !webcamRef.current.video) return;
       try {
-        if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+        if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
           setStatusText("Loading Biometrics...");
-          await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-          await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models');
+          await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
+          await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
         }
 
         setStatusText("LIVENESS: PLEASE BLINK");
@@ -114,8 +114,8 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
           
           const detection = await faceapi.detectSingleFace(
             webcamRef.current.video, 
-            new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.4 })
-          ).withFaceLandmarks(true);
+            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 })
+          ).withFaceLandmarks();
 
           if (detection) {
             const leftEye = detection.landmarks.getLeftEye();
@@ -262,8 +262,10 @@ export default function Home() {
   const [generateOpen, setGenerateOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Check if cookie exists
     const checkAdmin = () => {
       const hasCookie = document.cookie.includes('pranjal_admin_token=');
@@ -290,8 +292,10 @@ export default function Home() {
   };
 
   const now = new Date();
-  const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-  const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const timeStr = mounted ? now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "--:--";
+  const dateStr = mounted ? now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }) : "Loading...";
+  const hour = now.getHours();
+  const greeting = mounted ? (hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening") : "Welcome";
 
   useEffect(() => {
     if (!isAdmin) return; // Don't fetch stats if not admin/authenticated to avoid 401s
@@ -312,9 +316,6 @@ export default function Home() {
       });
     });
   }, [isAdmin]);
-
-  const hour = now.getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const hasContent = stats && stats.photoCount > 0;
 
