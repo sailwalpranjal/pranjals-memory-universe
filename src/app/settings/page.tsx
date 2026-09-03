@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import {
@@ -190,6 +190,7 @@ CLOUDINARY_PREFIX=pranjal_universe_`;
         <p className="text-[10px] tracking-[0.35em] text-muted-foreground uppercase">
           Universe Control Center
         </p>
+        <Link href="/admin/enrollment" className="absolute right-6 top-6 px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all rounded-xl border border-emerald-500/20 text-xs font-mono uppercase tracking-widest flex items-center gap-2"><Shield className="w-4 h-4"/><span>Biometrics Setup</span></Link>
         <h1 className="text-3xl font-extralight tracking-[0.12em] uppercase flex items-center gap-3">
           <Settings className="w-7 h-7 text-primary" />
           Settings & Infrastructure
@@ -199,7 +200,7 @@ CLOUDINARY_PREFIX=pranjal_universe_`;
         </p>
       </header>
 
-      {/* ── Archive Overview ──────────────────────────────────── */}
+      {/* â”€â”€ Archive Overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="flex flex-col space-y-4">
         <h2 className="text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-2">
           <Database className="w-4 h-4 text-primary" />
@@ -233,7 +234,7 @@ CLOUDINARY_PREFIX=pranjal_universe_`;
         )}
       </section>
 
-      {/* ── Cloudinary Storage Engine ─────────────────────────── */}
+      {/* â”€â”€ Cloudinary Storage Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-2">
@@ -323,7 +324,7 @@ CLOUDINARY_PREFIX=pranjal_universe_`;
         </div>
       </section>
 
-      {/* ── Gemini AI Multimodal Vision ───────────────────────── */}
+      {/* â”€â”€ Gemini AI Multimodal Vision â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="flex flex-col space-y-4">
         <h2 className="text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-2">
           <Cpu className="w-4 h-4 text-primary" />
@@ -370,7 +371,7 @@ CLOUDINARY_PREFIX=pranjal_universe_`;
         </div>
       </section>
 
-      {/* ── Data Export & Archival ─────────────────────────────── */}
+      {/* â”€â”€ Data Export & Archival â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="flex flex-col space-y-4">
         <h2 className="text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-2">
           <Download className="w-4 h-4 text-primary" />
@@ -412,7 +413,7 @@ CLOUDINARY_PREFIX=pranjal_universe_`;
         </div>
       </section>
 
-      {/* ── Vercel Deployment Instructions ─────────────────────── */}
+      {/* â”€â”€ Vercel Deployment Instructions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <section className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-medium tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-2">
@@ -468,3 +469,6 @@ CLOUDINARY_PREFIX=pranjal_universe_`;
     </main>
   );
 }
+
+
+

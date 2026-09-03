@@ -1,15 +1,27 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
+const rateLimitMap = new Map<string, { attempts: number; lockoutUntil: number }>();
+
 export async function POST(request: Request) {
   try {
-    const { descriptor } = await request.json(); 
+    const ip = request.headers.get('x-forwarded-for') || 'unknown';
+    
+    const now = Date.now();
+    const limitRecord = rateLimitMap.get(ip) || { attempts: 0, lockoutUntil: 0 };
+    
+    if (now < limitRecord.lockoutUntil) {
+      const waitMinutes = Math.ceil((limitRecord.lockoutUntil - now) / 60000);
+      return NextResponse.json({ success: false, error: `Too many failed attempts. Try again in ${waitMinutes}m.` }, { status: 429 });
+    }
+
+    const { descriptor } = await request.json();
 
     if (!descriptor || !Array.isArray(descriptor) || descriptor.length !== 128) {
-      return NextResponse.json({ error: 'Invalid or missing facial descriptor' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Invalid descriptor' }, { status: 400 });
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -23,51 +35,41 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      console.error('match_faces RPC error:', error);
-      return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+      console.error('match_faces error:', error);
+      return NextResponse.json({ success: false, error: 'Database error' }, { status: 500 });
     }
 
     if (matches && matches.length > 0) {
-      const match = matches[0];
-      if (match.person_id) {
-        const { data: person } = await supabase
-          .from('people')
-          .select('name')
-          .eq('id', match.person_id)
-          .single();
+      const bestMatch = matches[0];
+      
+      const { data: person } = await supabase
+        .from('people')
+        .select('name')
+        .eq('id', bestMatch.person_id)
+        .single();
 
-        if (person && person.name === 'Pranjal (Admin)') {
-          const cookieStore = cookies();
-          cookieStore.set('admin_auth', 'authenticated', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            path: '/',
-          });
-
-          return NextResponse.json({
-            success: true,
-            isAdmin: true,
-            personId: match.person_id,
-            personName: person.name,
-            confidence: match.confidence,
-            similarity: match.similarity
-          });
-        }
-
-        return NextResponse.json({
-          success: true,
-          isAdmin: false,
-          personId: match.person_id,
-          personName: person?.name || 'Unknown',
+      if (person && person.name === 'Pranjal (Admin)') {
+        rateLimitMap.delete(ip);
+        
+        cookies().set('admin_auth', 'true', {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          path: '/',
         });
+        return NextResponse.json({ success: true, isAdmin: true, similarity: bestMatch.similarity });
       }
     }
+    
+    limitRecord.attempts += 1;
+    if (limitRecord.attempts >= 5) {
+      limitRecord.lockoutUntil = now + 15 * 60 * 1000;
+    }
+    rateLimitMap.set(ip, limitRecord);
 
-    return NextResponse.json({ error: 'Face not recognized as Admin' }, { status: 401 });
-  } catch (error: unknown) {
-    console.error('[auth/face] Error:', error);
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ success: false, isAdmin: false, error: 'Identity Unknown' }, { status: 401 });
+  } catch (err) {
+    console.error('Face auth error:', err);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
