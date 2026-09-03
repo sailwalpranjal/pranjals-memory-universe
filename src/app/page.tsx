@@ -138,11 +138,32 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
           await new Promise(r => setTimeout(r, 100));
         }
 
-        if (!active) return;
-        await new Promise(r => setTimeout(r, 1000)); // Give them 1 sec to look back at the camera
+        // 2. Wait for user to look straight at the camera again before extraction
+        setStatusText("Liveness Verified! Please look straight at the camera.");
+        let isLookingStraight = false;
 
-        // 2. Extract final descriptor while looking straight
+        while (active && !isLookingStraight) {
+          if (!webcamRef.current?.video) break;
+          const detection = await faceapi.detectSingleFace(
+            webcamRef.current.video, 
+            new faceapi.SsdMobilenetv1Options({ minConfidence: 0.4 })
+          ).withFaceLandmarks();
+
+          if (detection) {
+            const ratio = getYawRatio(detection.landmarks);
+            // Looking straight means left and right distances are roughly equal (ratio near 1.0)
+            if (ratio > 0.8 && ratio < 1.25) {
+              isLookingStraight = true;
+              break;
+            }
+          }
+          await new Promise(r => setTimeout(r, 80));
+        }
+
+        if (!active) return;
         setStatusText("Extracting Facial Features...");
+        
+        // 3. Extract final descriptor while looking straight
         while (active && !descriptor) {
           if (!webcamRef.current?.video) break;
           const detection = await faceapi.detectSingleFace(
@@ -154,7 +175,7 @@ const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClos
             descriptor = detection.descriptor;
             break;
           }
-          await new Promise(r => setTimeout(r, 100));
+          await new Promise(r => setTimeout(r, 80));
         }
 
         if (descriptor && active) {
