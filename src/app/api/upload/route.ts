@@ -256,7 +256,7 @@ export async function POST(request: Request) {
       try {
         const ai = new GoogleGenAI({ apiKey: geminiKey });
         
-        const aiPrompt = 'You are an artistic archivist documenting memories in a personal universe. The Admin of this universe is named "Pranjal". Pranjal has curly dark hair, thin wire-rimmed glasses, a mustache with a short beard/stubble, and light-medium brown skin. Look closely at this media (image/audio/video). Return a JSON object with: "title" (poetic title of 2 to 4 words), "description" (cinematic 2-sentence description of mood and scene), "tags" (5 to 7 keyword strings), "people" (an array of distinct person/speaker names. ALWAYS include "Pranjal" if you see someone matching his description, otherwise use generic names like "Person A", "Person B"), and "is_conventional_memory" (true if this is a personal photo/memory/event/nature, false if it is a screenshot, receipt, meme, text document, or junk). ONLY valid JSON.';
+        const aiPrompt = 'You are an artistic archivist documenting memories in a personal universe. Look closely at this media (image/audio/video). Return a JSON object with: "title" (poetic title of 2 to 4 words), "description" (cinematic 2-sentence description of mood and scene), "tags" (5 to 7 keyword strings), and "is_conventional_memory" (true if this is a personal photo/memory/event/nature, false if it is a screenshot, receipt, meme, text document, or junk). ONLY valid JSON.';
         const modelName = isImage ? "gemini-2.5-flash" : "gemini-1.5-pro";
 
         const response = await ai.models.generateContent({
@@ -289,37 +289,6 @@ export async function POST(request: Request) {
              // If AI determines this is a screenshot, meme, receipt, etc., auto-archive it (soft delete/hide)
              await supabase.from('photos').update({ is_archived: true }).eq('id', photoId);
           }
-          
-          if (parsed.people && Array.isArray(parsed.people)) {
-            for (const personName of parsed.people) {
-              if (typeof personName !== "string" || !personName.trim()) continue;
-              
-              let pId = null;
-              const { data: existingPerson } = await supabase.from('people').select('id').eq('name', personName.trim()).maybeSingle();
-              
-              if (existingPerson) {
-                pId = existingPerson.id;
-              } else {
-                const { data: newPerson } = await supabase.from('people').insert({ 
-                  name: personName.trim(), 
-                  user_id: dummyUserId, 
-                  cover_photo_id: photoId 
-                }).select('id').single();
-                
-                if (newPerson) pId = newPerson.id;
-              }
-              
-              if (pId) {
-                await supabase.from('photo_faces').insert({
-                  photo_id: photoId,
-                  person_id: pId,
-                  confidence: 1.0,
-                  bounding_box: null, // No exact bounding box from Gemini
-                  embedding: null 
-                });
-              }
-            }
-          }
         }
       } catch (aiErr) {
         console.warn('[upload] Auto Gemini analysis skipped:', aiErr);
@@ -341,19 +310,35 @@ export async function POST(request: Request) {
     });
 
     // 11. Face recognition and people clustering (images only)
-    const facesStr = formData.get('faces') as string | null;
-    if (facesStr && isImage) {
+    if (isImage) {
       try {
-        const faces = JSON.parse(facesStr);
-        if (Array.isArray(faces) && faces.length > 0) {
-          for (const f of faces) {
-            if (!f.embedding || !Array.isArray(f.embedding) || f.embedding.length !== 128) continue;
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const faceapi = require('@vladmandic/face-api');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { Canvas, Image, ImageData, loadImage } = require('canvas');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const path = require('path');
+        faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+
+        const modelsPath = path.join(process.cwd(), 'public', 'models');
+        await faceapi.nets.ssdMobilenetv1.loadFromDisk(modelsPath);
+        await faceapi.nets.faceLandmark68Net.loadFromDisk(modelsPath);
+        await faceapi.nets.faceRecognitionNet.loadFromDisk(modelsPath);
+
+        const img = await loadImage(buffer);
+        const detections = await faceapi.detectAllFaces(img).withFaceLandmarks().withFaceDescriptors();
+
+        if (detections && detections.length > 0) {
+          for (const detection of detections) {
+            const descriptor = Array.from(detection.descriptor);
+            const box = detection.detection.box;
+            const confidence = detection.detection.score;
 
             let assignedPersonId: string | null = null;
             try {
               const { data: matches } = await supabase.rpc('match_faces', {
-                query_embedding: `[${f.embedding.join(',')}]`,
-                match_threshold: 0.55,
+                query_embedding: `[${descriptor.join(',')}]`,
+                match_threshold: 0.5,
                 match_count: 5,
               });
 
@@ -391,9 +376,9 @@ export async function POST(request: Request) {
             await supabase.from('photo_faces').insert({
               photo_id: photoId,
               person_id: assignedPersonId,
-              bounding_box: f.box || f.bounding_box || null,
-              embedding: `[${f.embedding.join(',')}]`,
-              confidence: typeof f.confidence === 'number' ? f.confidence : 1.0,
+              bounding_box: box,
+              embedding: `[${descriptor.join(',')}]`,
+              confidence: confidence,
             });
           }
         }

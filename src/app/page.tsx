@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Stars, Float, OrbitControls, Sparkles as DreiSparkles } from "@react-three/drei";
+import Webcam from "react-webcam";
 import {
   Camera,
   Calendar,
@@ -14,9 +17,165 @@ import {
   Video,
   Layers,
   Gamepad2,
+  Lock,
+  Unlock
 } from "lucide-react";
 import OnThisDay from "@/components/OnThisDay";
 import GenerateMemoryModal from "@/components/GenerateMemoryModal";
+
+import * as THREE from 'three';
+
+// --- 3D Scene Components ---
+function MemoryNodes() {
+  const groupRef = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => {
+    if (groupRef.current) {
+      groupRef.current.rotation.y = clock.getElapsedTime() * 0.05;
+      groupRef.current.rotation.x = clock.getElapsedTime() * 0.02;
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      <DreiSparkles count={500} scale={20} size={2} speed={0.4} opacity={0.6} color="#4fd1c5" />
+      <DreiSparkles count={300} scale={15} size={3} speed={0.2} opacity={0.4} color="#6366f1" />
+      <DreiSparkles count={100} scale={25} size={4} speed={0.5} opacity={0.3} color="#f472b6" />
+    </group>
+  );
+}
+
+function UniverseScene() {
+  return (
+    <>
+      <ambientLight intensity={0.5} />
+      <directionalLight position={[10, 10, 5]} intensity={1} />
+      <Stars radius={100} depth={50} count={7000} factor={4} saturation={0} fade speed={1} />
+      <MemoryNodes />
+      <Float speed={2} rotationIntensity={0.2} floatIntensity={0.5}>
+        <mesh position={[0, 0, -5]}>
+          <octahedronGeometry args={[1.5, 0]} />
+          <meshStandardMaterial color="#6366f1" wireframe emissive="#3b82f6" emissiveIntensity={0.5} transparent opacity={0.2} />
+        </mesh>
+      </Float>
+      <OrbitControls enableZoom={false} enablePan={false} autoRotate autoRotateSpeed={0.5} />
+    </>
+  );
+}
+
+// --- Stunning SVG Logo ---
+const UniverseLogo = () => (
+  <svg width="120" height="120" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-2xl mb-4">
+    <circle cx="50" cy="50" r="40" stroke="url(#paint0_linear)" strokeWidth="1.5" strokeDasharray="4 6" className="animate-[spin_10s_linear_infinite]" />
+    <circle cx="50" cy="50" r="30" stroke="url(#paint1_linear)" strokeWidth="2" opacity="0.8" className="animate-[spin_15s_linear_infinite_reverse]" />
+    <circle cx="50" cy="50" r="15" fill="url(#paint2_radial)" className="animate-pulse" />
+    <path d="M50 5 L50 95 M5 50 L95 50" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+    <path d="M18 18 L82 82 M18 82 L82 18" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+    <defs>
+      <linearGradient id="paint0_linear" x1="10" y1="10" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#4FD1C5" />
+        <stop offset="1" stopColor="#6366F1" />
+      </linearGradient>
+      <linearGradient id="paint1_linear" x1="90" y1="10" x2="10" y2="90" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#F472B6" />
+        <stop offset="1" stopColor="#3B82F6" />
+      </linearGradient>
+      <radialGradient id="paint2_radial" cx="50" cy="50" r="15" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#ffffff" />
+        <stop offset="1" stopColor="#6366F1" stopOpacity="0" />
+      </radialGradient>
+    </defs>
+  </svg>
+);
+
+// --- Biometric Auth Modal ---
+const FaceAuthModal = ({ isOpen, onClose, onSuccess }: { isOpen: boolean; onClose: () => void; onSuccess: () => void; }) => {
+  const webcamRef = useRef<Webcam>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const captureAndAuth = async () => {
+    if (!webcamRef.current) return;
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/auth/face', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: imageSrc })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.cookie = "pranjal_admin_token=" + (data.token || "authenticated") + "; path=/; max-age=86400";
+        onSuccess();
+      } else {
+        setError(data.error || "Authentication failed. Face not recognized.");
+      }
+    } catch {
+      setError("Network error during biometric scan.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="bg-zinc-900 border border-white/10 p-8 rounded-3xl w-full max-w-md flex flex-col items-center shadow-2xl relative overflow-hidden">
+        {/* Decorative background glow */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-emerald-500/20 blur-[60px] pointer-events-none" />
+        
+        <Lock className="w-8 h-8 text-emerald-400 mb-4 animate-pulse" />
+        <h2 className="text-xl font-light tracking-widest mb-1 uppercase text-emerald-400">Biometric Scan</h2>
+        <p className="text-xs text-muted-foreground tracking-widest uppercase mb-6">Admin Verification Required</p>
+        
+        <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black mb-6 border border-white/10 shadow-inner">
+          <Webcam
+            ref={webcamRef}
+            audio={false}
+            screenshotFormat="image/jpeg"
+            videoConstraints={{ facingMode: "user" }}
+            className="w-full h-full object-cover scale-x-[-1]"
+          />
+          {loading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+              <div className="w-10 h-10 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin mb-3" />
+              <span className="text-xs text-emerald-400 tracking-widest uppercase animate-pulse">Analyzing Map...</span>
+            </div>
+          )}
+          
+          {/* Scanning Reticle */}
+          <div className="absolute inset-0 pointer-events-none border-[1px] border-emerald-500/30 m-4 rounded-lg flex items-center justify-center">
+            <div className="w-1/2 h-1/2 border border-emerald-400/50 rounded-full" />
+            <div className="absolute w-full h-[1px] bg-emerald-500/20" />
+            <div className="absolute h-full w-[1px] bg-emerald-500/20" />
+          </div>
+        </div>
+
+        {error && <p className="text-red-400 text-sm mb-6 text-center">{error}</p>}
+        
+        <div className="flex space-x-4 w-full">
+          <button 
+            onClick={onClose}
+            className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 rounded-xl text-xs tracking-widest uppercase font-medium transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={captureAndAuth}
+            disabled={loading}
+            className="flex-1 py-3.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/50 rounded-xl text-xs tracking-widest uppercase font-bold transition-all disabled:opacity-50 hover:shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+          >
+            Authenticate
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface Stats {
   photoCount: number;
@@ -42,30 +201,33 @@ const NAV_CARDS = [
 export default function Home() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  const [visitorMode, setVisitorMode] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const mode = localStorage.getItem('pranjal_visitor_mode');
-      if (mode) setVisitorMode(mode);
-    }
+    // Check if cookie exists
+    const checkAdmin = () => {
+      const hasCookie = document.cookie.includes('pranjal_admin_token=');
+      setIsAdmin(hasCookie);
+    };
+    checkAdmin();
   }, []);
 
-  const toggleVisitorMode = () => {
-    if (visitorMode) {
-      localStorage.removeItem('pranjal_visitor_mode');
-      setVisitorMode(null);
+  const handleAdminToggle = () => {
+    if (isAdmin) {
+      // Logout
+      document.cookie = "pranjal_admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      setIsAdmin(false);
       window.location.reload();
     } else {
-      const personId = window.prompt('Enter Friend ID for Restricted Mode:');
-      if (personId) {
-        localStorage.setItem('pranjal_visitor_mode', personId);
-        setVisitorMode(personId);
-        window.location.reload();
-      }
+      setAuthModalOpen(true);
     }
+  };
+
+  const handleAuthSuccess = () => {
+    setAuthModalOpen(false);
+    setIsAdmin(true);
+    window.location.reload();
   };
 
   const now = new Date();
@@ -73,115 +235,102 @@ export default function Home() {
   const dateStr = now.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   useEffect(() => {
+    if (!isAdmin) return; // Don't fetch stats if not admin/authenticated to avoid 401s
+    
     Promise.all([
       fetch("/api/photos").then(r => r.json()).catch(() => ({ photos: [] })),
       fetch("/api/people").then(r => r.json()).catch(() => ({ people: [], totalPeople: 0 })),
       fetch("/api/places").then(r => r.json()).catch(() => ({ places: [] })),
     ]).then(([photosData, peopleData, placesData]) => {
-      const photos: { url: string | null; original_filename: string }[] = photosData.photos || [];
-      const withUrls = photos.filter(p => p.url);
+      const photos = photosData.photos || [];
+      const withUrls = photos.filter((p: { url?: string | null }) => p.url);
       setStats({
         photoCount: photos.length,
         peopleCount: peopleData.totalPeople || (peopleData.people?.length || 0),
         placesCount: placesData.places?.length || 0,
         latestPhoto: withUrls[0]?.url ?? null,
-        recentPhotos: withUrls.slice(0, 6).map(p => p.url as string),
+        recentPhotos: withUrls.slice(0, 6).map((p: { url: string }) => p.url),
       });
     });
-  }, []);
+  }, [isAdmin]);
 
   const hour = now.getHours();
-  const greeting =
-    hour < 12 ? "Good morning, Pranjal" : hour < 17 ? "Good afternoon, Pranjal" : "Good evening, Pranjal";
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   const hasContent = stats && stats.photoCount > 0;
 
   return (
-    <main className="min-h-screen flex flex-col">
+    <main className="min-h-screen flex flex-col relative bg-background">
+      {/* ── 3D BACKGROUND ────────────────────────────────────────── */}
+      <div className="absolute inset-0 z-0 h-[85vh]">
+        <Canvas camera={{ position: [0, 0, 10], fov: 45 }}>
+          <Suspense fallback={null}>
+            <UniverseScene />
+          </Suspense>
+        </Canvas>
+        {/* Gradient overlay to blend 3D canvas with content below */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background pointer-events-none" />
+      </div>
+
       {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section className="relative min-h-[85vh] flex flex-col items-center justify-center overflow-hidden">
-        {/* Background collage of recent photos */}
-        {hasContent && stats.recentPhotos.length > 0 && (
-          <div className="absolute inset-0 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-0 opacity-15 mix-blend-screen pointer-events-none">
-            {[...stats.recentPhotos, ...stats.recentPhotos].slice(0, 12).map((url, i) => (
-              <div key={i} className="overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={url}
-                  alt=""
-                  className="w-full h-full object-cover scale-110"
-                  style={{ aspectRatio: "1" }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-background/95 via-background/80 to-background/98" />
-
+      <section className="relative z-10 min-h-[85vh] flex flex-col items-center justify-center overflow-hidden">
+        
         {/* Content */}
-        <div className="relative z-10 flex flex-col items-center text-center space-y-8 px-6">
+        <div className="relative z-20 flex flex-col items-center text-center space-y-8 px-6 mt-10">
+          
+          <UniverseLogo />
+          
           {/* Cloud Health & Status Pill */}
-          <div className="flex flex-col md:flex-row items-center gap-3">
-    <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono tracking-widest text-muted-foreground uppercase shadow-2xl backdrop-blur-md">
-      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
-      <span>Pranjal&apos;s Network</span>
-      <span className="text-white/20">|</span>
-      <span className="text-emerald-400">Sync Active</span>
-    </div>
-    <button 
-      onClick={toggleVisitorMode}
-      className={`inline-flex items-center space-x-2 px-4 py-1.5 rounded-full border text-[10px] font-mono tracking-widest uppercase shadow-2xl backdrop-blur-md transition-all ${visitorMode ? 'bg-amber-500/10 border-amber-500/30 text-amber-500' : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'}`}
-    >
-      <span>{visitorMode ? 'Visitor Restricted Mode' : 'Admin Access'}</span>
-    </button>
-  </div>
-  {/* hide old */} <div className="hidden">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Encrypted Memory Universe Active</span>
-            <span className="text-white/20">|</span>
+          <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="inline-flex items-center space-x-2 px-5 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono tracking-widest text-muted-foreground uppercase shadow-2xl backdrop-blur-md">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
+              <span className="text-white/80">Network Sync Active</span>
             </div>
+            
+            <button 
+              onClick={handleAdminToggle}
+              className={`group inline-flex items-center space-x-2 px-5 py-2 rounded-full border text-[10px] font-mono tracking-widest uppercase shadow-2xl backdrop-blur-md transition-all ${
+                isAdmin 
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20' 
+                  : 'bg-amber-500/10 border-amber-500/30 text-amber-500 hover:bg-amber-500/20'
+              }`}
+            >
+              {isAdmin ? <Unlock className="w-3 h-3 group-hover:scale-110 transition-transform" /> : <Lock className="w-3 h-3 group-hover:scale-110 transition-transform" />}
+              <span>{isAdmin ? 'Admin Unlocked' : 'Visitor Mode Restricted'}</span>
+            </button>
+          </div>
 
           {/* Clock / date */}
           <div className="flex flex-col items-center space-y-1">
-            <p className="font-mono text-5xl md:text-7xl font-extralight text-foreground tracking-widest tabular-nums">
+            <p className="font-mono text-5xl md:text-8xl font-extralight text-white tracking-widest tabular-nums drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
               {timeStr}
             </p>
-            <p className="text-muted-foreground text-xs tracking-[0.35em] uppercase font-medium">{dateStr}</p>
+            <p className="text-white/50 text-xs tracking-[0.4em] uppercase font-medium mt-2">{dateStr}</p>
           </div>
 
           {/* Wordmark & Dynamic Greeting */}
-          <div className="flex flex-col items-center space-y-2">
-            <h2 className="text-xs font-mono tracking-[0.4em] uppercase text-primary font-medium">
-              {greeting}, {visitorMode ? 'Friend' : 'Pranjal'}
+          <div className="flex flex-col items-center space-y-2 mt-4">
+            <h2 className="text-xs font-mono tracking-[0.5em] uppercase text-emerald-400 font-medium">
+              {greeting}, {isAdmin ? 'Pranjal' : 'Visitor'}
             </h2>
-            <h1 className="text-2xl md:text-4xl font-extralight tracking-[0.25em] uppercase text-foreground/90">
-              <div className="relative group">
-    <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 to-blue-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-    <span className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Memory</span> Universe
-  </div>
+            <h1 className="text-3xl md:text-5xl font-extralight tracking-[0.3em] uppercase text-white/90 drop-shadow-xl mt-2">
+              Memory Universe
             </h1>
-            <div className="flex items-center space-x-3 text-muted-foreground/30">
-              <div className="w-8 h-px bg-current" />
-              <span className="text-[10px] tracking-[0.4em] uppercase font-medium">Archival Ecosystem</span>
-              <div className="w-8 h-px bg-current" />
-            </div>
           </div>
 
-          {/* Live stats */}
-          {stats !== null && (
-            <div className="flex items-center space-x-8 md:space-x-12">
+          {/* Live stats - Only visible if admin */}
+          {isAdmin && stats !== null && (
+            <div className="flex items-center space-x-8 md:space-x-16 mt-8 p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
               {[
                 { value: stats.photoCount, label: "Memories" },
                 ...(stats.peopleCount > 0 ? [{ value: stats.peopleCount, label: "People" }] : []),
                 ...(stats.placesCount > 0 ? [{ value: stats.placesCount, label: "Places" }] : []),
               ].map((stat, i) => (
                 <div key={i} className="flex flex-col items-center">
-                  <span className="text-3xl md:text-4xl font-extralight text-foreground tabular-nums">
+                  <span className="text-3xl md:text-5xl font-light text-white tabular-nums drop-shadow-md">
                     {stat.value}
                   </span>
-                  <span className="text-[10px] text-muted-foreground tracking-[0.3em] uppercase mt-1">
+                  <span className="text-[10px] text-emerald-400/80 tracking-[0.35em] uppercase mt-2">
                     {stat.label}
                   </span>
                 </div>
@@ -189,153 +338,136 @@ export default function Home() {
             </div>
           )}
 
-          {/* Primary Actions */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+          {/* Primary Actions - Disabled or hidden if visitor */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-6">
             <button
-              onClick={() => setGenerateOpen(true)}
-              className="flex items-center space-x-2 px-6 py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/25"
+              onClick={() => isAdmin ? setGenerateOpen(true) : setAuthModalOpen(true)}
+              className="flex items-center space-x-2 px-8 py-4 rounded-full bg-white text-black text-sm font-bold tracking-wide uppercase hover:bg-gray-200 transition-all shadow-[0_0_30px_rgba(255,255,255,0.2)]"
             >
               <Sparkles className="w-4 h-4" />
-              <span>Generate Memory</span>
+              <span>{isAdmin ? 'Generate Memory' : 'Unlock Full Access'}</span>
             </button>
-            <Link
-              href="/gallery"
-              className="flex items-center space-x-2 px-6 py-3 rounded-2xl bg-foreground text-background text-sm font-medium hover:bg-foreground/90 transition-all shadow-lg shadow-white/5"
-            >
-              <Camera className="w-4 h-4" />
-              <span>Live Camera &amp; Ingest</span>
-            </Link>
-            {hasContent && (
+            {isAdmin && (
               <Link
-                href="/timeline"
-                className="flex items-center space-x-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-foreground text-sm font-medium hover:bg-white/10 transition-all backdrop-blur-sm"
+                href="/gallery"
+                className="flex items-center space-x-2 px-8 py-4 rounded-full bg-white/10 border border-white/20 text-white text-sm font-bold tracking-wide uppercase hover:bg-white/20 transition-all backdrop-blur-md"
               >
-                <Calendar className="w-4 h-4 opacity-70" />
-                <span>Explore Timeline</span>
+                <Camera className="w-4 h-4" />
+                <span>Live Camera</span>
               </Link>
             )}
-          </div>
-
-          {/* Quick Launch Hub */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs font-mono">
-            <Link
-              href="/puzzles"
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-muted-foreground hover:text-foreground transition-all flex items-center space-x-1.5"
-            >
-              <Gamepad2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>Play Assemble Puzzle</span>
-            </Link>
-            <Link
-              href="/meet"
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-muted-foreground hover:text-foreground transition-all flex items-center space-x-1.5"
-            >
-              <Video className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Encrypted Meet</span>
-            </Link>
-            <Link
-              href="/make"
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-muted-foreground hover:text-foreground transition-all flex items-center space-x-1.5"
-            >
-              <LayoutDashboard className="w-3.5 h-3.5 text-sky-400" />
-              <span>Creative Studio</span>
-            </Link>
-            <Link
-              href="/search"
-              className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-muted-foreground hover:text-foreground transition-all flex items-center space-x-1.5"
-            >
-              <Search className="w-3.5 h-3.5 text-primary" />
-              <span>Search Universe</span>
-            </Link>
           </div>
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 text-muted-foreground/40">
-          <ArrowRight className="w-4 h-4 rotate-90 animate-bounce" />
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2 text-white/30">
+          <ArrowRight className="w-5 h-5 rotate-90 animate-bounce" />
         </div>
       </section>
-      <canvas ref={canvasRef} className="hidden" />
 
-      {/* ── FEATURED PHOTO ────────────────────────────────────────── */}
-      {hasContent && stats.latestPhoto && (
-        <section className="px-6 md:px-10 py-16 max-w-7xl mx-auto w-full">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <p className="text-[10px] tracking-[0.35em] text-muted-foreground uppercase mb-1">Latest Memory</p>
-              <h2 className="text-2xl font-extralight tracking-wide">Most Recent</h2>
-            </div>
-            <Link href="/timeline" className="flex items-center space-x-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group">
-              <span className="tracking-wider uppercase">View all</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
-            {stats.recentPhotos.map((url, i) => (
-              <Link
-                href="/timeline"
-                key={i}
-                className={`group relative overflow-hidden rounded-xl bg-secondary/20 ${
-                  i === 0 ? "col-span-2 row-span-2 aspect-square md:aspect-auto" : "aspect-square"
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={url}
-                  alt=""
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-              </Link>
-            ))}
-          </div>
+      {/* ── RESTRICTED OVERLAY FOR VISITORS ──────────────────────── */}
+      {!isAdmin && (
+        <section className="px-6 md:px-10 py-24 max-w-7xl mx-auto w-full text-center relative z-10 flex flex-col items-center">
+          <Lock className="w-12 h-12 text-amber-500/50 mb-6" />
+          <h2 className="text-2xl font-extralight tracking-widest text-white mb-4 uppercase">Access Restricted</h2>
+          <p className="text-muted-foreground max-w-md text-sm leading-relaxed">
+            You are currently viewing the Memory Universe in Visitor Mode. 
+            Detailed archives, timeline data, and full gallery access require biometric administrator authentication.
+          </p>
+          <button 
+            onClick={() => setAuthModalOpen(true)}
+            className="mt-8 px-8 py-3 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-full text-xs tracking-widest uppercase hover:bg-amber-500/20 transition-all"
+          >
+            Authenticate Now
+          </button>
         </section>
       )}
 
-      {/* ── ON THIS DAY / HISTORICAL FLASHBACK ──────────────────── */}
-      <section className="px-6 md:px-10 py-6 max-w-7xl mx-auto w-full">
-        <OnThisDay />
-      </section>
-
-      {/* ── NAVIGATION CARDS ──────────────────────────────────────── */}
-      <section className="px-6 md:px-10 py-16 max-w-7xl mx-auto w-full">
-        <div className="mb-10">
-          <p className="text-[10px] tracking-[0.35em] text-muted-foreground uppercase mb-1">Navigate</p>
-          <h2 className="text-2xl font-extralight tracking-wide">Your Universe</h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-          {NAV_CARDS.map(card => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="group relative flex flex-col justify-between p-5 md:p-7 rounded-2xl border border-white/5 bg-card/40 hover:bg-card/80 hover:border-white/10 transition-all duration-300 overflow-hidden min-h-[140px]"
-            >
-              {/* Hover glow */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-white/3 to-transparent pointer-events-none" />
-
-              <card.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors duration-200 mb-auto" strokeWidth={1.25} />
-
-              <div>
-                <h3 className="text-sm font-medium tracking-wide text-foreground mb-1">{card.label}</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{card.description}</p>
+      {/* ── ADMIN CONTENT ────────────────────────────────────────── */}
+      {isAdmin && (
+        <>
+          {/* FEATURED PHOTO */}
+          {hasContent && stats.latestPhoto && (
+            <section className="px-6 md:px-10 py-16 max-w-7xl mx-auto w-full relative z-10">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <p className="text-[10px] tracking-[0.35em] text-emerald-400 uppercase mb-2">Latest Memories</p>
+                  <h2 className="text-3xl font-extralight tracking-widest text-white uppercase">Recent Archive</h2>
+                </div>
+                <Link href="/timeline" className="flex items-center space-x-2 text-xs text-muted-foreground hover:text-white transition-colors group">
+                  <span className="tracking-widest uppercase">View all</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {stats.recentPhotos.map((url, i) => (
+                  <Link
+                    href="/timeline"
+                    key={i}
+                    className={`group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 shadow-xl ${
+                      i === 0 ? "col-span-2 row-span-2 aspect-square md:aspect-auto" : "aspect-square"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt=""
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors duration-500" />
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
 
-              <ArrowRight className="absolute top-5 right-5 w-4 h-4 text-muted-foreground/0 group-hover:text-muted-foreground/60 translate-x-1 group-hover:translate-x-0 opacity-0 group-hover:opacity-100 transition-all duration-200" />
-            </Link>
-          ))}
-        </div>
-      </section>
+          {/* ON THIS DAY */}
+          <section className="px-6 md:px-10 py-6 max-w-7xl mx-auto w-full relative z-10">
+            <OnThisDay />
+          </section>
+
+          {/* NAVIGATION CARDS */}
+          <section className="px-6 md:px-10 py-20 max-w-7xl mx-auto w-full relative z-10">
+            <div className="mb-12">
+              <p className="text-[10px] tracking-[0.35em] text-emerald-400 uppercase mb-2">Directory</p>
+              <h2 className="text-3xl font-extralight tracking-widest text-white uppercase">System Modules</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {NAV_CARDS.map(card => (
+                <Link
+                  key={card.href}
+                  href={card.href}
+                  className="group relative flex flex-col justify-between p-6 md:p-8 rounded-3xl border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-500 overflow-hidden min-h-[160px] backdrop-blur-sm"
+                >
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                  <card.icon className="w-6 h-6 text-white/50 group-hover:text-emerald-400 transition-colors duration-300 mb-auto" strokeWidth={1.5} />
+                  <div className="mt-8">
+                    <h3 className="text-sm font-bold tracking-widest uppercase text-white mb-2">{card.label}</h3>
+                    <p className="text-xs text-white/50 leading-relaxed">{card.description}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ── FOOTER ────────────────────────────────────────────────── */}
-      <footer className="mt-auto px-6 py-8 border-t border-white/5 text-center">
-        <p className="text-[10px] text-muted-foreground/40 tracking-[0.3em] uppercase">
-          Private · Local-First · Pranjal&apos;s Universe
+      <footer className="mt-auto px-6 py-12 border-t border-white/10 text-center relative z-10 bg-background/80 backdrop-blur-lg">
+        <p className="text-[10px] text-white/30 tracking-[0.4em] uppercase font-medium">
+          Private · Biometric Security · Pranjal&apos;s Universe
         </p>
       </footer>
 
-      {/* AI Memory Generator Modal */}
       <GenerateMemoryModal
         isOpen={generateOpen}
         onClose={() => setGenerateOpen(false)}
+      />
+
+      <FaceAuthModal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+        onSuccess={handleAuthSuccess}
       />
     </main>
   );

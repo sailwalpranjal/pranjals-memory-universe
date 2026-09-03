@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 import { getSignedUrlsForPhotos } from '@/lib/storage';
 
@@ -34,6 +35,13 @@ interface PhotoRow {
 }
 
 export async function GET(request: Request) {
+  const cookieStore = cookies();
+  const adminToken = cookieStore.get('pranjal_admin_token');
+  
+  if (!adminToken || !adminToken.value) {
+    return NextResponse.json({ error: 'Unauthorized. Biometric face authentication required.' }, { status: 401 });
+  }
+
   const searchParams = request.url ? new URL(request.url).searchParams : new URLSearchParams();
   const onlyFavorites = searchParams.get('favorites') === 'true';
   const limitParam = parseInt(searchParams.get('limit') || '100', 10);

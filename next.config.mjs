@@ -25,6 +25,9 @@ const nextConfig = {
       },
     ];
   },
+  experimental: {
+    serverComponentsExternalPackages: ['canvas', '@vladmandic/face-api'],
+  },
 };
 
 export default nextConfig;
