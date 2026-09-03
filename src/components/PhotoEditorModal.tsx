@@ -886,7 +886,8 @@ export default function PhotoEditorModal({
                       className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-primary/15 border border-primary/30 text-xs text-primary font-medium"
                     >
                       <Users className="w-3 h-3" />
-                      <span>{person.name}</span>
+                      <span>{person.name}  <button onClick={() => handleSetCoverPhoto(person.id)} title="Set as Profile Picture" className="ml-1 hover:text-white transition-colors"><UserPlus className="w-3 h-3" /></button>
+                      </span>
                     </span>
                   ))}
                 </div>
@@ -1000,5 +1001,3 @@ export default function PhotoEditorModal({
   );
 }
 
-// Dummy comment to use handleSetCoverPhoto
-// handleSetCoverPhoto
