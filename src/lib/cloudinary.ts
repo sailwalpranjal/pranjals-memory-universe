@@ -106,7 +106,10 @@ export async function testCloudinaryConnection(cloudNameOverride?: string): Prom
       cloudName,
     };
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown Cloudinary error';
+    let msg = 'Unknown Cloudinary error';
+    if (err instanceof Error) msg = err.message;
+    else if (typeof err === 'object' && err !== null && (err as any).error) msg = (err as any).error.message;
+    else if (typeof err === 'string') msg = err;
     return {
       success: false,
       message: msg,

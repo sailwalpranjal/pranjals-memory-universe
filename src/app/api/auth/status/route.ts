@@ -1,14 +1,28 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { verifyToken } from '@/lib/jwt';
 
 export async function GET() {
-  const adminToken = (await cookies()).get('pranjal_admin_token');
-  const guestToken = (await cookies()).get('pranjal_guest_token');
+  const cookieStore = await cookies();
+  const adminToken = cookieStore.get('pranjal_admin_token');
+  const guestToken = cookieStore.get('pranjal_guest_token');
   
   if (adminToken && adminToken.value === 'true') {
-    return NextResponse.json({ authenticated: true, role: 'admin' });
-  } else if (guestToken && guestToken.value) {
-    return NextResponse.json({ authenticated: true, role: 'guest', personId: guestToken.value });
+    cookieStore.delete('pranjal_admin_token');
+  }
+  
+  if (adminToken && adminToken.value !== 'true') {
+    const decoded = await verifyToken(adminToken.value);
+    if (decoded && decoded.role === 'admin') {
+      return NextResponse.json({ authenticated: true, role: 'admin' });
+    }
+  }
+  
+  if (guestToken) {
+    const decoded = await verifyToken(guestToken.value);
+    if (decoded && decoded.role === 'guest') {
+      return NextResponse.json({ authenticated: true, role: 'guest', personId: decoded.userId });
+    }
   }
   
   return NextResponse.json({ authenticated: false, role: null });

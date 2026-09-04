@@ -27,9 +27,20 @@ const nextConfig = {
       },
     ];
   },
-  experimental: {
-    serverExternalPackages: ['canvas', '@vladmandic/face-api'],
+  
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        buffer: require.resolve("buffer/"),
+        crypto: false,
+      };
+    }
+    return config;
   },
+  turbopack: { resolveAlias: { buffer: 'buffer' } },
+  serverExternalPackages: ['canvas', '@vladmandic/face-api'],
 };
 
 export default nextConfig;

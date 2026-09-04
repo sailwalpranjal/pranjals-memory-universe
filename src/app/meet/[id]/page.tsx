@@ -62,9 +62,10 @@ interface ChatMessage {
   time: string;
 }
 
-export default function MeetingRoomPage({ params }: { params: { id: string } }) {
+import { use } from 'react';
+export default function MeetingRoomPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const roomId = params.id;
+  const { id: roomId } = use(params);
 
   const [meeting, setMeeting] = useState<MeetingRoomData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,7 +76,7 @@ export default function MeetingRoomPage({ params }: { params: { id: string } }) 
   const videoStageRef = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
     const [userId] = useState(() => Math.random().toString(36).substring(7));
-    const { remoteStreams, channel } = useWebRTC(params.id as string, supabase, stream, userId);
+    const { remoteStreams, channel } = useWebRTC(roomId as string, supabase, stream, userId);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
