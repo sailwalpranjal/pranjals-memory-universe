@@ -52,7 +52,7 @@ export async function GET() {
     // 1. Fetch all people profiles
     const { data: peopleData, error: peopleError } = await supabase
       .from('people')
-      .select('id, name, cover_photo_id, created_at, photos:cover_photo_id(id, storage_path, original_filename, cloudinary_url, captured_at, mime_type)')
+      .select('id, name, cover_photo_id, created_at, photos:cover_photo_id(id, storage_path, cloudinary_url, original_filename, cloudinary_url, captured_at, mime_type)')
       .order('created_at', { ascending: false });
 
     if (peopleError) throw peopleError;

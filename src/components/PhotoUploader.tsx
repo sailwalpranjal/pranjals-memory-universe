@@ -42,7 +42,14 @@ export default function PhotoUploader({
   };
 
   const addFiles = (files: FileList | File[]) => {
-    const newItems: UploadItem[] = Array.from(files).map((f) => ({
+    const validFiles = Array.from(files).filter((f) => {
+      if (f.size > 4.5 * 1024 * 1024) {
+        alert("File " + f.name + " exceeds 4.5MB limit. Vercel serverless functions have a 4.5MB payload limit. Video uploads require a direct-to-storage architecture.");
+        return false;
+      }
+      return true;
+      });
+      const newItems: UploadItem[] = validFiles.map((f) => ({
       id: Math.random().toString(36).substring(2, 9),
       file: f,
       name: f.name,

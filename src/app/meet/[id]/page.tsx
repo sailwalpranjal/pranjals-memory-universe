@@ -75,11 +75,23 @@ export default function MeetingRoomPage({ params }: { params: Promise<{ id: stri
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const videoStageRef = useRef<HTMLDivElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-    const [userId] = useState(() => Math.random().toString(36).substring(7));
+    const [userId] = useState(() => {
+      if (typeof window !== "undefined") {
+        const stored = sessionStorage.getItem("meet_user_id");
+        if (stored) return stored;
+        const newId = Math.random().toString(36).substring(7);
+        sessionStorage.setItem("meet_user_id", newId);
+        return newId;
+      }
+      return Math.random().toString(36).substring(7);
+    });
     const { remoteStreams, channel } = useWebRTC(roomId as string, supabase, stream, userId);
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [hideUI, setHideUI] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => { setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)); }, []);
   const screenTrackRef = useRef<MediaStreamTrack | null>(null);
 
   // Puzzle State
@@ -303,6 +315,10 @@ export default function MeetingRoomPage({ params }: { params: Promise<{ id: stri
 
   // Toggle Screen Sharing
   const toggleScreenShare = async () => {
+    if (isMobile) {
+      alert("Screen sharing is not fully supported on this mobile browser.");
+      return;
+    }
     if (isScreenSharing) {
       if (screenTrackRef.current) {
         screenTrackRef.current.stop();
@@ -566,7 +582,7 @@ export default function MeetingRoomPage({ params }: { params: Promise<{ id: stri
                       autoPlay
                       playsInline
                       muted
-                      className="w-full h-full object-contain bg-black"
+                      className="w-full h-full object-cover bg-black"
                       style={{
                         transform: isScreenSharing ? "none" : "scaleX(-1)",
                       }}
@@ -598,7 +614,7 @@ export default function MeetingRoomPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* ── RIGHT: Sidebar (Chat / People / Details) ───────────── */}
-        {activeSidebar && (
+        {activeSidebar && !hideUI && (
           <aside className="w-full md:w-80 bg-zinc-950 border-t md:border-t-0 md:border-l border-white/5 flex flex-col z-20 shrink-0 h-64 md:h-full">
             {/* Sidebar Tab Header */}
             <div className="flex items-center justify-between p-3 border-b border-white/5 bg-zinc-900/30">
@@ -871,6 +887,15 @@ export default function MeetingRoomPage({ params }: { params: Promise<{ id: stri
           <MessageSquare className="w-5 h-5" />
         </button>
 
+        
+        <button
+          onClick={() => setHideUI(!hideUI)}
+          className="p-3.5 rounded-2xl border bg-white/5 hover:bg-white/10 text-foreground border-white/10 transition-all ml-auto"
+          title={hideUI ? "Show UI" : "Hide UI"}
+        >
+          {hideUI ? <Monitor className="w-5 h-5 text-primary" /> : <X className="w-5 h-5" />}
+        </button>
+
         {/* End & Delete Meeting */}
         <button
           onClick={handleEndAndDelete}
@@ -901,7 +926,7 @@ const RemoteVideo = ({ stream, isSpeaking, name, isScreenSharing }: { stream: Me
   }, [stream]);
   return (
     <div className={`relative w-full h-full rounded-2xl overflow-hidden border ${isSpeaking ? 'border-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]' : 'border-white/10'}`}>
-      <video ref={ref} autoPlay playsInline className={`w-full h-full object-contain bg-black`} />
+      <video ref={ref} autoPlay playsInline className={`w-full h-full object-cover bg-black`} />
       <div className="absolute bottom-4 left-4 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-xl text-xs font-medium text-white flex items-center space-x-2 border border-white/10">
         <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
         <span>{name || "Guest"}</span>

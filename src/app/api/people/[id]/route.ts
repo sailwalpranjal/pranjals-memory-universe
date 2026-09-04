@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     // 1. Fetch person details
     const { data: person, error: personError } = await supabase
       .from('people')
-      .select('id, name, cover_photo_id, created_at, photos:cover_photo_id(id, storage_path)')
+      .select('id, name, cover_photo_id, created_at, photos:cover_photo_id(id, storage_path, cloudinary_url)')
       .eq('id', personId)
       .single();
 
@@ -41,7 +41,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { data: personFaces, error: facesError } = await supabase
       .from('photo_faces')
       .select(
-        'id, photo_id, person_id, bounding_box, confidence, created_at, photos(id, storage_path, original_filename, captured_at, imported_at, width, height, photo_metadata(*))'
+        'id, photo_id, person_id, bounding_box, confidence, created_at, photos(id, storage_path, cloudinary_url, original_filename, captured_at, imported_at, width, height, photo_metadata(*))'
       )
       .eq('person_id', personId)
       .order('created_at', { ascending: false });
@@ -72,7 +72,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     if (personPhotoIds.length > 0) {
       const { data: coFaces, error: coError } = await supabase
         .from('photo_faces')
-        .select('id, photo_id, person_id, bounding_box, people(id, name, cover_photo_id), photos(id, storage_path)')
+        .select('id, photo_id, person_id, bounding_box, people(id, name, cover_photo_id), photos(id, storage_path, cloudinary_url)')
         .in('photo_id', personPhotoIds)
         .neq('person_id', personId)
         .not('person_id', 'is', null);

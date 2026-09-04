@@ -22,6 +22,11 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
 
     const channel = supabase.channel(`meet-${roomId}`);
     channelRef.current = channel;
+    const safeSend = (payload: any) => {
+      if (channelRef.current && channelRef.current.state === 'joined') {
+        channelRef.current.send(payload).catch(() => {});
+      }
+    };
 
     const cleanupPeer = (targetUserId: string) => {
       const peer = peersRef.current.get(targetUserId);
@@ -62,7 +67,7 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
 
       pc.onicecandidate = (event) => {
         if (event.candidate) {
-          channel.send({
+          safeSend({
             type: 'broadcast',
             event: 'webrtc-ice',
             payload: { targetUserId, senderUserId: userId, candidate: event.candidate }
@@ -80,7 +85,7 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
         pc.createOffer().then(offer => {
           return pc.setLocalDescription(offer);
         }).then(() => {
-          channel.send({
+          safeSend({
             type: 'broadcast',
             event: 'webrtc-offer',
             payload: { targetUserId, senderUserId: userId, offer: pc.localDescription }
@@ -116,7 +121,7 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
 
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
-          channel.send({
+          safeSend({
             type: 'broadcast',
             event: 'webrtc-answer',
             payload: { targetUserId: payload.senderUserId, senderUserId: userId, answer: pc.localDescription }
@@ -152,7 +157,7 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          channel.send({
+          safeSend({
             type: 'broadcast',
             event: 'user-joined',
             payload: { senderUserId: userId }
@@ -161,7 +166,7 @@ export function useWebRTC(roomId: string, supabase: SupabaseClient, localStream:
       });
 
     const handleUnload = () => {
-      channel.send({
+      safeSend({
         type: 'broadcast',
         event: 'user-left',
         payload: { senderUserId: userId }

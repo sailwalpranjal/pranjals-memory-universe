@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useState, useRef, useEffect, useCallback } from "react";
 import {
   X,
@@ -171,7 +172,7 @@ export default function PhotoEditorModal({
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    const modalContent = () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
   // CSS filter string for live preview
@@ -1000,5 +1001,6 @@ export default function PhotoEditorModal({
       </div>
     </div>
   );
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 }
 

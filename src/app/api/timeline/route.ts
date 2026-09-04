@@ -9,7 +9,12 @@ export async function GET() {
   const cookieStore = await cookies();
   const adminToken = cookieStore.get('pranjal_admin_token');
   const guestToken = cookieStore.get('pranjal_guest_token');
-  const isAdmin = adminToken && adminToken.value === 'true';
+  let isAdmin = false;
+  if (adminToken && adminToken.value) {
+    const { verifyToken } = require('@/lib/jwt');
+    const p = await verifyToken(adminToken.value);
+    if (p && p.role === 'admin') isAdmin = true;
+  }
   const isGuest = guestToken && guestToken.value;
   
   if (!isAdmin && !isGuest) {

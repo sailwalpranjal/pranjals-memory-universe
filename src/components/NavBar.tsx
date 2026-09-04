@@ -64,9 +64,11 @@ export default function NavBar() {
             href="/"
             className="flex items-center space-x-2 text-[11px] font-medium tracking-[0.28em] uppercase text-muted-foreground hover:text-foreground transition-colors group"
           >
-            <Compass className="w-4 h-4 text-primary transition-transform group-hover:rotate-45" />
-            <span className="font-light text-foreground">Pranjal&apos;s</span>
-            <span className="text-muted-foreground">Universe</span>
+            <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-tr from-primary to-sky-500 shadow-[0_0_15px_rgba(var(--primary),0.5)]">
+              <Compass className="w-3.5 h-3.5 text-white transition-transform duration-700 group-hover:rotate-180" />
+            </div>
+            <span className="font-light text-foreground tracking-[0.35em] bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">PRANJAL&apos;S</span>
+            <span className="text-primary/80 font-semibold tracking-[0.35em] ml-1">UNIVERSE</span>
           </Link>
 
           {/* Desktop Nav Links (Large screens) */}

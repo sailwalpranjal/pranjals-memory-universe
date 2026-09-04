@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
@@ -23,6 +23,7 @@ function ConnectionsGame({ onBack }: { onBack: () => void }) {
     setError("");
     try {
       const res = await fetch('/api/photos?limit=50');
+      if (!res.ok) throw new Error("Failed to fetch photos");
       const data = await res.json();
       const available = data.photos.filter((p: {url: string}) => p.url);
       
@@ -36,15 +37,31 @@ function ConnectionsGame({ onBack }: { onBack: () => void }) {
       const selected = shuffled.slice(0, 4);
       setPhotos(selected);
 
-      const genRes = await fetch('/api/puzzles/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageUrls: selected.map((p: {url: string}) => p.url) })
-      });
-      const genData = await genRes.json();
+      // Create a timeout controller
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      let genData;
+      try {
+        const genRes = await fetch('/api/puzzles/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrls: selected.map((p: {url: string}) => p.url) }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (!genRes.ok) throw new Error("API returned " + genRes.status);
+        genData = await genRes.json();
+      } catch (err) {
+        console.warn("AI puzzle generation failed, using fallback:", err);
+        genData = { error: "AI Failed" };
+      }
       
       if (genData.error) {
-        setError(genData.error);
+        setPuzzle({
+          connection: "Shared Memories",
+          explanation: "These are beautiful moments from your connected universe."
+        });
       } else {
         setPuzzle(genData);
       }
