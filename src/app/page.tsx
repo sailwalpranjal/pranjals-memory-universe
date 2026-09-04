@@ -4,6 +4,8 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+const Hero3D = dynamic(() => import("@/components/Hero3D"), { ssr: false });
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Stars, Float, OrbitControls, Sparkles as DreiSparkles } from "@react-three/drei";
 
@@ -165,11 +167,7 @@ export default function Home() {
     <main className="min-h-screen flex flex-col relative bg-background">
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ 3D BACKGROUND Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <div className="absolute inset-0 z-0 h-[85vh]">
-        <Canvas camera={{ position: [0, 0, 10], fov: 45 }}>
-          <Suspense fallback={null}>
-            <UniverseScene />
-          </Suspense>
-        </Canvas>
+        <Hero3D />
         {/* Gradient overlay to blend 3D canvas with content below */}
         <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/60 to-background pointer-events-none" />
       </div>
