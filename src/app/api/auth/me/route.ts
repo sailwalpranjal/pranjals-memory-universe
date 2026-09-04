@@ -8,8 +8,8 @@ const supabase = createClient(
 );
 
 export async function GET() {
-  const adminToken = cookies().get('pranjal_admin_token');
-  const guestToken = cookies().get('pranjal_guest_token');
+  const adminToken = (await cookies()).get('pranjal_admin_token');
+  const guestToken = (await cookies()).get('pranjal_guest_token');
   
   if (adminToken && adminToken.value === 'true') {
     return NextResponse.json({ name: 'Pranjal', role: 'admin' });

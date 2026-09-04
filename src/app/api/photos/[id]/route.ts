@@ -17,7 +17,7 @@ export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = await params;
   if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
   const supabase = getSupabase();
@@ -59,7 +59,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = await params;
   if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
   const supabase = getSupabase();
@@ -123,7 +123,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  const { id } = params;
+  const { id } = await params;
   if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
   const supabase = getSupabase();

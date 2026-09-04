@@ -10,7 +10,7 @@ interface RouteContext {
   };
 }
 
-export async function GET(request: Request, { params }: RouteContext) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const personId = params.id;
   if (!personId) {
     return NextResponse.json({ error: 'Person ID is required' }, { status: 400 });
