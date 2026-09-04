@@ -4,64 +4,98 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Three.js](https://img.shields.io/badge/Three.js-black?style=for-the-badge&logo=three.js)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![WebRTC](https://img.shields.io/badge/WebRTC-333333?style=for-the-badge&logo=webrtc&logoColor=white)
 
-A highly secure, biometric-locked personal archiving system and interactive 3D universe. This application goes beyond standard photo galleries by using 128-Dimensional facial vector embeddings to authenticate the administrator and protect private memories, alongside advanced AI-driven features like semantic relationship puzzles and generative studios.
+I built this application as a highly secure, biometric-locked personal archiving system and interactive 3D universe. My goal was to move beyond standard photo galleries and architect a system that treats memories as interconnected nodes of data, protected by enterprise-grade patterns. 
+
+This project uses 128-Dimensional facial vector embeddings to authenticate the administrator and protect private memories. It also features advanced AI-driven semantic relationship puzzles, real-time WebRTC communication, and dynamic generative studios. It serves as both a secure vault for my personal data and a technical sandbox for experimenting with leading-edge web technologies.
 
 ---
 
 ## Architecture Overview
 
-The system is built on a modern Next.js 15 stack, leveraging React Server Components and edge middleware for strict security isolation.
+The system is built on a modern Next.js 15 stack, leveraging React 19 Server Components, Edge Middleware for strict security isolation, and a hybrid storage approach.
 
-```mermaid
+`mermaid
 graph TD
-    Client[Client UI / Browser] -->|Face Scan / Image Upload| Edge[Next.js API Routes]
+    Client[Client UI / Browser] -->|Face Scan / Auth Request| Edge[Next.js API Routes]
+    Edge -->|Verify JWT Token| Auth[Middleware Auth Check]
     Edge -->|Vector Match Request| DB[(Supabase PostgreSQL)]
     DB -->|pgvector Cosine Distance| Edge
-    Edge -->|AI Generation Request| Gemini[Google Gemini API]
-    Edge -->|Upload| Storage[(Supabase Storage)]
-    Storage --> Client
-```
+    Edge -->|Media Upload| Cloudinary[Cloudinary CDN]
+    Edge -->|Fallback Upload| Storage[(Supabase Storage)]
+    Edge -->|AI Generation Request| Gemini[Google Gemini Vision API]
+    Client <-->|WebRTC Signaling| Realtime[Supabase Realtime Channel]
+    Realtime <-->|Peer-to-Peer| Peer[Remote Peer Client]
+`
 
-## Key Features
+## Key Engineering Implementations
 
-### Biometric Authentication & Security
-- **128-D Vector Verification**: Uses face-api.js to compute exact facial Euclidean vectors. Facial embeddings are stored as vectors in a private database and are never directly exposed to the client. The backend compares these vectors against a known administrative template using pgvector.
-- **Edge Route Protection**: Employs Next.js edge middleware to strictly wall off all admin-level routes (`/gallery`, `/timeline`, `/collections`, etc.). 
-- **Guest Isolation Portal**: Non-admin users who scan their face are mathematically restricted at the database level to only view photos they are explicitly tagged in.
+### Cryptographic JWT Authentication & Biometric Security
+Security is a core focus of this application. Instead of relying on plaintext cookies or session IDs, the system generates secure JSON Web Tokens (JWTs) using the HS256 algorithm via the jose library.
+- **128-D Vector Verification:** The frontend processes webcam feeds via ace-api.js to compute exact facial Euclidean vectors. These embeddings are matched against administrative templates in PostgreSQL using the pgvector extension (Cosine Distance operator).
+- **Edge Route Protection:** Next.js Edge Middleware intercepts all requests to protected routes (e.g., /timeline, /meet, /puzzles, /api/upload). It cryptographically verifies the JWT before allowing the request to proceed, ensuring strict walling of administrative capabilities.
 
-### Interactive 3D Frontend
-- **Three.js Particle Universe**: Built with `@react-three/fiber` and `@react-three/drei` to render a lightweight, highly optimized floating 3D particle network representing your memory neural graph.
-- **Glassmorphic UI**: Clean, modern aesthetics layered over the 3D canvas, featuring Lucide React iconography and Tailwind CSS animations.
+### Intelligent Asset Pipeline (Cloudinary & Supabase)
+Handling rich media efficiently required a robust pipeline. I designed a hybrid system:
+- Primary uploads are routed to **Cloudinary**, utilizing their optimized CDN for automatic formatting, resizing, and fast global delivery.
+- A seamless fallback mechanism routes uploads to **Supabase Storage** if the CDN integration is unavailable.
+- For private assets stored in Supabase, the backend dynamically generates temporary Signed URLs to prevent direct public access to the raw files.
+
+### WebRTC & Real-Time Synchronized Multiplayer
+The application includes a Meet feature that goes beyond standard video conferencing.
+- **Peer-to-Peer Communication:** Implemented custom WebRTC hooks handling ICE candidates, session descriptions (SDP), and media streams.
+- **Supabase Realtime Signaling:** Utilizes Supabase Realtime channels (meet-{roomId}) for high-speed signaling between peers. I implemented a strict safeSend wrapper to queue messages until the WebSocket connection achieves a 'joined' state, preventing packet loss during initial handshakes.
+- **Synchronous Gameplay:** Integrated multiplayer games (like Tic-Tac-Toe) directly into the video call interface. Game states are broadcasted over the established data channels, allowing participants to play synchronously while maintaining the video feed.
 
 ### Advanced AI Capabilities
-- **Semantic & Metadata Search Engine**: Uses Google Gemini to generate true multimodal semantic text embeddings of images, which are queried via Cosine Distance matching, backed by extensive PostgreSQL metadata filtering.
-- **Semantic Puzzles Engine**: Automatically generates dynamic puzzles using true Haversine distance calculations and Gemini AI semantic clustering on EXIF metadata.
-- **Creative Studio**: An integrated AI canvas allowing generative interaction with the secure archive.
-- **Auto-Tagging System**: High-speed facial detection runs on every upload. If a known vector is recognized, the person is automatically tagged. Unrecognized faces remain unassigned to prevent database clutter, awaiting manual tagging via the custom React autocomplete menu.
+- **Semantic Generation:** Uses Google Gemini 2.5 Flash API to automatically extract contextual metadata, suggested tags, and narrative descriptions from uploaded images.
+- **Contextual Puzzles Engine:** An AI-driven system that aggregates random photos from the database and uses Gemini to dynamically generate semantic connections, presenting them as challenging visual puzzles.
+
+### Lab Telemetry & Interactive 3D Frontend
+- **Live System Telemetry:** The Lab interface simulates a real-time developer operations console, featuring a Live Neural Heatmap and mock metrics (CPU Load, Memory Usage) that update continuously, showcasing advanced state management in React.
+- **Three.js Particle Universe:** The landing page renders a highly optimized, interactive 3D particle network representing a neural memory graph, utilizing @react-three/fiber and @react-three/drei.
 
 ---
 
-## Data Flow & Authentication
+## Data Flow: Face Authentication
 
-1. **Capture**: The user's webcam feed is processed via `face-api.js`.
-2. **Extraction**: A 128-float array (vector embedding) is extracted from the face.
-3. **Transmission**: The embedding is sent to `/api/auth/face`.
-4. **Matching**: A PostgreSQL RPC (`match_faces`) uses pgvector's cosine distance `<=>` operator to find the closest match.
-5. **Thresholding**: If the match exceeds the strict Administrator threshold (0.92), a full-access HttpOnly token is issued. If it exceeds the Guest threshold (0.75), an isolated Guest token is issued.
+`mermaid
+sequenceDiagram
+    participant User as Client Web Camera
+    participant FaceAPI as face-api.js (Client)
+    participant API as Next.js API (/api/auth/face)
+    participant DB as Supabase PostgreSQL
+    
+    User->>FaceAPI: Captures Frame
+    FaceAPI->>FaceAPI: Extracts 128-D Vector
+    FaceAPI->>API: POST Vector Data
+    API->>DB: RPC 'match_faces' (pgvector)
+    DB-->>API: Returns Closest Match & Confidence
+    alt Confidence > 0.92 (Admin)
+        API->>API: Sign JWT with Admin Role
+        API-->>User: Return HttpOnly Secure Cookie
+    else Confidence > 0.75 (Guest)
+        API->>API: Sign JWT with Guest Role
+        API-->>User: Return HttpOnly Secure Cookie
+    else Match Failed
+        API-->>User: 401 Unauthorized
+    end
+`
 
 ---
 
 ## Technology Stack
 
-- **Framework**: Next.js 14 (App Router, Server Actions)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **3D Rendering**: Three.js / React Three Fiber
-- **Database & Storage**: Supabase (PostgreSQL + pgvector)
-- **Biometrics**: face-api.js (TensorFlow.js)
-- **AI Processing**: Google Gemini API
-- **Maps**: Mapbox GL / react-map-gl
+- **Framework:** Next.js 15 (App Router)
+- **Language:** TypeScript
+- **UI & Styling:** Tailwind CSS, Lucide Icons, Glassmorphic Design Patterns
+- **3D Rendering:** Three.js, React Three Fiber
+- **Database:** Supabase (PostgreSQL + pgvector)
+- **Authentication:** Custom JWT (jose), face-api.js (TensorFlow.js)
+- **Asset Management:** Cloudinary API, Supabase Storage
+- **AI Processing:** Google Gemini SDK
+- **Real-time:** WebRTC, Supabase Realtime Channels
 
 ---
 
@@ -69,67 +103,71 @@ graph TD
 
 ### Prerequisites
 - Node.js (v18 or higher)
-- Supabase Account & Database with pgvector extension enabled
+- Supabase Account & Database (with pgvector extension enabled)
+- Cloudinary Account (for media optimization)
 - Google Gemini API Key
 
 ### Installation
 
 1. **Clone the repository:**
-   ```bash
+   `ash
    git clone https://github.com/sailwalpranjal/pranjals-memory-universe.git
    cd pranjals-memory-universe
-   ```
+   `
 
 2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+   This project resolves strict peer dependencies for React 19. Ensure you use the provided .npmrc or run:
+   `ash
+   npm install --legacy-peer-deps
+   `
 
 3. **Set up Environment Variables:**
-   Rename `.env.example` to `.env.local` and fill in your keys:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_key
-   GEMINI_API_KEY=your_gemini_api_key
-   NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_token
-   ```
+   Rename .env.example to .env.local and populate your API keys:
+   `env
+   NEXT_PUBLIC_SUPABASE_URL=
+   SUPABASE_SERVICE_ROLE_KEY=
+   JWT_SECRET=
+   GEMINI_API_KEY=
+   CLOUDINARY_URL=
+   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+   `
 
 4. **Initialize Database:**
-   Run the setup script to initialize the PostgreSQL tables, indexes, and RPC functions:
-   ```bash
+   Run the setup script to initialize the PostgreSQL tables, vector indexes, and RPC functions:
+   `ash
    node setup-db.js
-   ```
+   `
 
-5. **Train the Biometric Admin (First Time Setup):**
-   Navigate to the `/settings` tab (after bypassing via the fallback authentication) and use the built-in Biometric Security Engine panel to train the administrator face.
+5. **Train the Biometric Admin:**
+   Access the system using a fallback auth token (if configured) and navigate to the /settings tab to train the initial administrative facial vector.
 
 6. **Run the Development Server:**
-   ```bash
+   `ash
    npm run dev
-   ```
-   Navigate to `http://localhost:3000`.
+   `
+   Navigate to http://localhost:3000.
 
 ---
 
 ## Deployment (Vercel)
 
-This project is optimized for deployment on Vercel.
+This project is optimized for Edge deployment on Vercel.
 
 1. Push your code to your GitHub repository.
-2. Go to your Vercel Dashboard and click **Add New... > Project**.
-3. Import this GitHub repository.
-4. Add all the environment variables from your `.env.local` file into the Vercel project settings.
-5. In the Build & Development Settings, Vercel will automatically detect Next.js. Leave the build command as `npm run build`.
-6. Click **Deploy**.
+2. Import the repository into the Vercel Dashboard.
+3. Inject all variables from .env.local into the Vercel Environment Variables configuration.
+4. Vercel automatically detects Next.js. Retain the default build command (
+pm run build).
+5. Deploy.
 
-> **Note on Deployment Dependencies**: 
-> The project uses canvas as a backend server component for face-api processing. It is explicitly marked in `next.config.mjs` under `serverComponentsExternalPackages` to guarantee Vercel's Node.js edge functions compile it flawlessly.
+*Note: The ace-api.js processing relies on the canvas module in Node environments. This is explicitly handled via Turbopack aliases and serverExternalPackages in 
+ext.config.mjs to guarantee Vercel compilation.*
 
 ---
 
-## Privacy & Security Note
+## Privacy & Security Considerations
 
-This application processes highly sensitive biometric data. The `face-api.js` calculations occur securely, and raw 128-D vector arrays are securely hashed in the Supabase database. Vector comparisons never expose the underlying logic to the client.
+This application processes highly sensitive biometric data. The ace-api.js calculations occur securely, and raw 128-D vector arrays are securely hashed in the database. Vector comparisons never expose the underlying logic or raw templates to the client. The system restricts raw asset querying and relies strictly on signed JWTs for session state.
 
 ## License
 
