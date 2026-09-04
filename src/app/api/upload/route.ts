@@ -246,7 +246,19 @@ export async function POST(request: Request) {
       throw dbError;
     }
 
-    // 9. Auto Gemini AI Multimodal Vision Analysis (images only)
+    
+    const response = NextResponse.json({
+      success: true,
+      photo: {
+        ...dbData,
+        url: resolvedUrl,
+      },
+      message: 'Upload successful. Processing AI metadata in background.',
+    });
+
+    waitUntil((async () => {
+        try {
+// 9. Auto Gemini AI Multimodal Vision Analysis (images only)
     let aiTitle: string | null = null;
     let aiDescription: string | null = null;
     let aiTags: string[] | null = null;
@@ -284,6 +296,19 @@ export async function POST(request: Request) {
           aiTitle = parsed.title || null;
           aiDescription = parsed.description || null;
           aiTags = Array.isArray(parsed.tags) ? parsed.tags : null;
+          // NEW: Generate Semantic Embedding
+          try {
+            const embedRes = await ai.models.embedContent({
+                model: 'text-embedding-004',
+                contents: (aiTitle || '') + ' ' + (aiDescription || '') + ' ' + (aiTags ? aiTags.join(' ') : ''),
+            });
+            if (embedRes.embeddings && embedRes.embeddings.length > 0) {
+                const vector = embedRes.embeddings[0].values;
+                await supabase.from('photos').update({ semantic_embedding: `[${vector.join(',')}]` }).eq('id', photoId);
+            }
+          } catch (e) {
+             console.warn('Embedding skipped', e);
+          }
           
           if (parsed.is_conventional_memory === false) {
              // If AI determines this is a screenshot, meme, receipt, etc., auto-archive it (soft delete/hide)
@@ -390,20 +415,13 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      photo: {
-        ...dbData,
-        url: resolvedUrl,
-        metadata: {
-          ai_title: aiTitle,
-          ai_description: aiDescription,
-          ai_tags: aiTags,
-          city: exifMetadata.city,
-          country: exifMetadata.country,
-        },
-      },
-    });
+    
+        } catch (e) {
+            console.error("Background task error", e);
+        }
+    })());
+
+    return response;
   } catch (error: unknown) {
     console.error('[upload] Critical error:', error);
     const msg = error instanceof Error ? error.message : 'Unknown error';
