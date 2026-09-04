@@ -598,7 +598,7 @@ function TelemetryCard({ icon: Icon, label, value, progress, color }: { icon: Lu
       <div className="w-full bg-white/5 h-1.5 rounded-full mt-2 overflow-hidden z-10">
         <div 
           className={`h-full rounded-full transition-all duration-500 ease-out ${barColorMap[color]}`} 
-          style={{ width: \`\${Math.max(0, Math.min(100, progress))}%\` }}
+          style={{ width: Math.max(0, Math.min(100, progress)) + "%" }}
         ></div>
       </div>
     </div>

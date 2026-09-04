@@ -205,7 +205,7 @@ export default function MeetingRoomPage({ params }: { params: Promise<{ id: stri
         payload: { userId, name: displayName, isScreenSharing }
       });
     }
-  }, [channel, displayName, isScreenSharing, userId]);
+  }, [channel, displayName, isScreenSharing, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!channel) return;

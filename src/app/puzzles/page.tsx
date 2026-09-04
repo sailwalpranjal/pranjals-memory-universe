@@ -291,20 +291,20 @@ function PuzzlesHubContent() {
   const [activeGame, setActiveGame] = useState<string | null>(null);
   const [isLobby, setIsLobby] = useState(false);
 
-    if (activeGame === 'connections') return <ConnectionsGame onBack={() => setActiveGame(null)} />;
+  if (activeGame === 'connections') return <ConnectionsGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'geoguessr') return <GeoguessrGame onBack={() => setActiveGame(null)} />;
   if (activeGame === 'jigsaw') return <JigsawGame onBack={() => setActiveGame(null)} />;
-  if (activeGame === 'draw') return <DrawAndGuessGame onBack={() => setActiveGame(null)} roomId={roomId} />;
+  if (activeGame === 'tictactoe') return <TicTacToeGame onBack={() => setActiveGame(null)} roomId={roomId} />;
 
   const games = [
     { id: "geoguessr", name: "Archive Geoguessr", icon: Map, desc: "Pinpoint where your memories were captured on an interactive map." },
     { id: "sequence", name: "Memory Sequence", icon: Brain, desc: "Simon-says style memory test with your own photos." },
     { id: "connections", name: "Context Connections", icon: Target, desc: "Find the semantic connection between 4 seemingly random images." },
     { id: "assemble", name: "Image Assemble", icon: Puzzle, desc: "Piece together your shattered memories in a jigsaw format." },
-    { id: "oddone", name: "Odd One Out", icon: Gamepad2, desc: "Identify the image that doesn't belong based on hidden metadata." },
+    { id: "tictactoe", name: "Multiplayer Tic-Tac-Toe", icon: Gamepad2, desc: "Play Tic-Tac-Toe synchronously in a Meet session." },
   ];
 
-  if (activeGame === 'assemble' || activeGame === 'sequence' || activeGame === 'oddone') return (
+  if (activeGame === 'assemble' || activeGame === 'sequence') return (
     <div className="flex flex-col items-center justify-center min-h-screen text-center p-6 space-y-6">
       <h1 className="text-4xl font-bold text-primary animate-pulse">{games.find(g => g.id === activeGame)?.name}</h1>
       <p className="text-muted-foreground text-lg">Initializing advanced multiplayer engine...</p>
@@ -460,89 +460,123 @@ function JigsawGame({ onBack }: { onBack: () => void }) {
   );
 }
 
-function DrawCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isDrawing = useRef(false);
-
-  const startDraw = (e: React.PointerEvent) => {
-    isDrawing.current = true;
-    draw(e);
-  };
-  const endDraw = () => {
-    isDrawing.current = false;
-    const ctx = canvasRef.current?.getContext('2d');
-    if (ctx) ctx.beginPath();
-  };
-  const draw = (e: React.PointerEvent) => {
-    if (!isDrawing.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#000';
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
+function TicTacToeGame({ onBack, roomId }: { onBack: () => void, roomId?: string | null }) {
+  const [board, setBoard] = useState<(string | null)[]>(Array(9).fill(null));
+  const [isXNext, setIsXNext] = useState(true);
+  const [channel, setChannel] = useState<any>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
+    if (!roomId) return;
+    import("@supabase/supabase-js").then(({ createClient }) => {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+      );
+      const chan = supabase.channel(`meet-${roomId}`);
+      chan.on('broadcast', { event: 'tictactoe-move' }, ({ payload }) => {
+        setBoard(payload.board);
+        setIsXNext(payload.isXNext);
+      }).subscribe();
+      setChannel(chan);
+    });
+
+    return () => {
+      if (channel) channel.unsubscribe();
+    };
+  }, [roomId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const calculateWinner = (squares: (string | null)[]) => {
+    const lines = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+    for (let i = 0; i < lines.length; i++) {
+      const [a, b, c] = lines[i];
+      if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+        return squares[a];
+      }
     }
-  }, []);
+    return null;
+  };
 
-  return <canvas 
-    ref={canvasRef} 
-    className="w-full h-full cursor-crosshair touch-none"
-    onPointerDown={startDraw}
-    onPointerMove={draw}
-    onPointerUp={endDraw}
-    onPointerOut={endDraw}
-  />;
-}
+  const winner = calculateWinner(board);
+  const isDraw = !winner && board.every(s => s !== null);
 
-function DrawAndGuessGame({ onBack, roomId }: { onBack: () => void, roomId?: string | null }) {
-  console.log(roomId); // Use roomId to avoid warning
+  const handleClick = (i: number) => {
+    if (board[i] || winner) return;
+    const newBoard = board.slice();
+    newBoard[i] = isXNext ? 'X' : 'O';
+    setBoard(newBoard);
+    setIsXNext(!isXNext);
+
+    if (channel) {
+      channel.send({
+        type: 'broadcast',
+        event: 'tictactoe-move',
+        payload: { board: newBoard, isXNext: !isXNext }
+      });
+    }
+  };
+
+  const resetGame = () => {
+    const newBoard = Array(9).fill(null);
+    setBoard(newBoard);
+    setIsXNext(true);
+    if (channel) {
+      channel.send({
+        type: 'broadcast',
+        event: 'tictactoe-move',
+        payload: { board: newBoard, isXNext: true }
+      });
+    }
+  };
+
   return (
-    <div className="flex flex-col h-full bg-zinc-950 p-6 animate-fade-in">
-      <div className="flex items-center justify-between mb-8">
+    <div className="flex flex-col h-full bg-zinc-950 p-6 animate-fade-in w-full max-w-lg mx-auto">
+      <div className="flex items-center justify-between mb-8 w-full">
         <button onClick={onBack} className="p-2 rounded-full hover:bg-white/10 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-xl font-bold flex items-center"><Target className="w-5 h-5 mr-2 text-primary" /> Universe Draw & Guess</h2>
+        <h2 className="text-xl font-bold flex items-center"><Gamepad2 className="w-5 h-5 mr-2 text-primary" /> Multiplayer Tic-Tac-Toe</h2>
         <div className="w-9" />
       </div>
 
-      <div className="flex-1 flex flex-col md:flex-row gap-6 h-[60vh]">
-        <div className="flex-[2] bg-white rounded-3xl overflow-hidden relative shadow-2xl">
-          <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10 pointer-events-none">
-            <div className="bg-black/80 text-white px-4 py-1.5 rounded-full text-xs font-mono font-bold tracking-widest shadow-lg">
-              DRAWING MODE
-            </div>
-          </div>
-          <DrawCanvas />
+      <div className="flex-1 flex flex-col items-center justify-center space-y-8">
+        <div className="text-xl font-bold text-white bg-white/5 px-6 py-3 rounded-2xl border border-white/10">
+          {winner ? (
+            <span className="text-emerald-400">Winner: {winner} 🎉</span>
+          ) : isDraw ? (
+            <span className="text-amber-400">It's a Draw!</span>
+          ) : (
+            <span>Next Player: <span className="text-primary">{isXNext ? 'X' : 'O'}</span></span>
+          )}
         </div>
 
-        <div className="flex-1 bg-zinc-900 rounded-3xl border border-white/10 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-white/5 bg-zinc-900/50">
-            <h3 className="font-bold text-sm text-zinc-400">Live Guesses</h3>
-          </div>
-          <div className="flex-1 p-4 flex flex-col justify-end space-y-2">
-            <div className="bg-white/5 p-2 rounded-xl text-xs"><span className="font-bold text-primary">System:</span> Waiting for players...</div>
-          </div>
-          <div className="p-3 border-t border-white/5 bg-black/20">
-            <input disabled placeholder="Type your guess..." className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary/50" />
-          </div>
+        <div className="grid grid-cols-3 gap-3 bg-white/5 p-4 rounded-3xl border border-white/10 shadow-2xl">
+          {board.map((cell, i) => (
+            <button
+              key={i}
+              onClick={() => handleClick(i)}
+              className={`w-24 h-24 rounded-2xl text-5xl font-bold flex items-center justify-center transition-all ${
+                !cell ? 'bg-white/5 hover:bg-white/10' : 
+                cell === 'X' ? 'bg-primary/20 text-primary border border-primary/30 shadow-[0_0_15px_rgba(var(--primary),0.3)]' : 
+                'bg-sky-500/20 text-sky-400 border border-sky-500/30 shadow-[0_0_15px_rgba(14,165,233,0.3)]'
+              }`}
+            >
+              {cell}
+            </button>
+          ))}
         </div>
+
+        {(winner || isDraw) && (
+          <button 
+            onClick={resetGame}
+            className="px-6 py-3 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-all flex items-center"
+          >
+            <PlayCircle className="w-4 h-4 mr-2" /> Play Again
+          </button>
+        )}
       </div>
     </div>
   );

@@ -154,6 +154,10 @@ export default function PhotoEditorModal({
   };
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
 
   // Keyboard controls
   useEffect(() => {

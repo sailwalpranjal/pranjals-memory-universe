@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Sparkles,
@@ -48,6 +48,14 @@ const MOODS = [
 export default function GenerateMemoryModal({ isOpen, onClose }: GenerateMemoryModalProps) {
   const router = useRouter();
   const [mood, setMood] = useState(MOODS[0].id);
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
   const [location, setLocation] = useState("");
   const [limit, setLimit] = useState(4);
   const [isGenerating, setIsGenerating] = useState(false);
