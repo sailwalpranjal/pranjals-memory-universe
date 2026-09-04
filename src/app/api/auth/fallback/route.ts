@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { signToken } from '@/lib/jwt';
 
 export async function POST(request: Request) {
   try {
@@ -8,16 +9,15 @@ export async function POST(request: Request) {
     const validPassword = process.env.ADMIN_FALLBACK_PASSWORD;
     
     if (!validPassword) {
-      console.error("ADMIN_FALLBACK_PASSWORD is not set in environment variables");
       return NextResponse.json({ success: false, error: "Server configuration error. Fallback disabled." }, { status: 500 });
     }
     
-    // Remove accidental quotes and spaces
     const cleanValid = validPassword.replace(/['"]/g, '').trim();
     const cleanInput = (password || '').trim();
     
     if (cleanInput === cleanValid) {
-      cookies().set('pranjal_admin_token', 'true', {
+      const token = await signToken({ role: 'admin', userId: '00000000-0000-0000-0000-000000000000' });
+      (await cookies()).set('pranjal_admin_token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
