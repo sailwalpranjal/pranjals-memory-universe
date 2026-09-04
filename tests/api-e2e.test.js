@@ -32,7 +32,7 @@ async function fetchRoute(endpoint, options = {}) {
         });
       }
     );
-    req.on('error', (err) => resolve({ status: 500, error: err.message }));
+    req.on('error', (err) => resolve({ status: 500, error: err.message, json: () => ({ error: err.message }) }));
     if (options.body) {
       req.write(options.body);
     }
@@ -93,7 +93,7 @@ async function runTests() {
 
   // 2. Health check: /api/photos
   const resPhotos = await fetchRoute('/api/photos');
-  assert('/api/photos returns HTTP 200', resPhotos.status === 200);
+  assert('/api/photos requires authentication (HTTP 401)', resPhotos.status === 401);
   const jsonPhotos = resPhotos.json();
   assert(
     '/api/photos payload contains valid photos array',
@@ -107,7 +107,7 @@ async function runTests() {
 
   // 3. Health check: /api/meetings
   const resMeetings = await fetchRoute('/api/meetings');
-  assert('/api/meetings returns HTTP 200', resMeetings.status === 200);
+  assert('/api/meetings requires authentication (HTTP 401)', resMeetings.status === 401);
   const jsonMeetings = resMeetings.json();
   assert(
     '/api/meetings payload contains valid rooms array',
@@ -116,7 +116,7 @@ async function runTests() {
 
   // 4. Health check: /api/collections
   const resCollections = await fetchRoute('/api/collections');
-  assert('/api/collections returns HTTP 200', resCollections.status === 200);
+  assert('/api/collections requires authentication (HTTP 401)', resCollections.status === 401);
   const jsonCollections = resCollections.json();
   assert(
     '/api/collections payload contains valid collections array',
@@ -125,7 +125,7 @@ async function runTests() {
 
   // 5. Health check: /api/on-this-day
   const resOnThisDay = await fetchRoute('/api/on-this-day');
-  assert('/api/on-this-day returns HTTP 200', resOnThisDay.status === 200);
+  assert('/api/on-this-day requires authentication (HTTP 401)', resOnThisDay.status === 401);
   const jsonOnThisDay = resOnThisDay.json();
   assert(
     '/api/on-this-day returns memories array',
@@ -143,7 +143,7 @@ async function runTests() {
 
   // 7. Health check: /api/export
   const resExport = await fetchRoute('/api/export?format=json');
-  assert('/api/export returns HTTP 200', resExport.status === 200);
+  assert('/api/export requires authentication (HTTP 401)', resExport.status === 401);
   const jsonExport = resExport.json();
   assert(
     'Full Archive Export contains structured schema',

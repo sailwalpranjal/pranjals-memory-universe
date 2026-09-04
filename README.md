@@ -1,17 +1,17 @@
 ﻿# Pranjal's Memory Universe
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![Three.js](https://img.shields.io/badge/Three.js-black?style=for-the-badge&logo=three.js)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 
-A highly secure, biometric-locked personal archiving system and interactive 3D universe. This application goes beyond standard photo galleries by using true 128-Dimensional facial vector embeddings to authenticate the administrator and protect private memories, alongside advanced AI-driven features like semantic relationship puzzles and generative studios.
+A highly secure, biometric-locked personal archiving system and interactive 3D universe. This application goes beyond standard photo galleries by using 128-Dimensional facial vector embeddings to authenticate the administrator and protect private memories, alongside advanced AI-driven features like semantic relationship puzzles and generative studios.
 
 ---
 
 ## Architecture Overview
 
-The system is built on a modern Next.js 14 stack, leveraging React Server Components and edge middleware for strict security isolation.
+The system is built on a modern Next.js 15 stack, leveraging React Server Components and edge middleware for strict security isolation.
 
 ```mermaid
 graph TD
@@ -25,8 +25,8 @@ graph TD
 
 ## Key Features
 
-### Military-Grade Biometric Security
-- **128-D Vector Verification**: Uses face-api.js to compute exact facial Euclidean vectors. The backend compares these vectors against a known administrative template using pgvector.
+### Biometric Authentication & Security
+- **128-D Vector Verification**: Uses face-api.js to compute exact facial Euclidean vectors. Facial embeddings are stored as vectors in a private database and are never directly exposed to the client. The backend compares these vectors against a known administrative template using pgvector.
 - **Edge Route Protection**: Employs Next.js edge middleware to strictly wall off all admin-level routes (`/gallery`, `/timeline`, `/collections`, etc.). 
 - **Guest Isolation Portal**: Non-admin users who scan their face are mathematically restricted at the database level to only view photos they are explicitly tagged in.
 
@@ -35,6 +35,7 @@ graph TD
 - **Glassmorphic UI**: Clean, modern aesthetics layered over the 3D canvas, featuring Lucide React iconography and Tailwind CSS animations.
 
 ### Advanced AI Capabilities
+- **Semantic & Metadata Search Engine**: Uses Google Gemini to generate true multimodal semantic text embeddings of images, which are queried via Cosine Distance matching, backed by extensive PostgreSQL metadata filtering.
 - **Semantic Puzzles Engine**: Automatically generates dynamic puzzles using true Haversine distance calculations and Gemini AI semantic clustering on EXIF metadata.
 - **Creative Studio**: An integrated AI canvas allowing generative interaction with the secure archive.
 - **Auto-Tagging System**: High-speed facial detection runs on every upload. If a known vector is recognized, the person is automatically tagged. Unrecognized faces remain unassigned to prevent database clutter, awaiting manual tagging via the custom React autocomplete menu.
