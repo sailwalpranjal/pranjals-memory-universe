@@ -35,7 +35,7 @@ interface PhotoRow {
 }
 
 export async function GET(request: Request) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const adminToken = cookieStore.get('pranjal_admin_token');
   const guestToken = cookieStore.get('pranjal_guest_token');
   const isAdmin = adminToken && adminToken.value === 'true';

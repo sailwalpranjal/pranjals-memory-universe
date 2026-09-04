@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useEffect, useState, useRef } from "react";
 import Webcam from "react-webcam";
-import * as faceapi from "@vladmandic/face-api";
+// dynamically loaded
 import { Lock, Key } from "lucide-react";
 
 type AuthState = 
@@ -56,14 +56,14 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
 
       try {
         setAuthState("INITIALIZING");
-        if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+        if (!(await import("@vladmandic/face-api")).nets.tinyFaceDetector.isLoaded) {
           setStatusMessage("Loading Neural Models...");
-          await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-          await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models');
-          await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+          const f = await import("@vladmandic/face-api"); await f.nets.tinyFaceDetector.loadFromUri('/models');
+          await f.nets.faceLandmark68TinyNet.loadFromUri('/models');
+          await f.nets.faceRecognitionNet.loadFromUri('/models');
         }
 
-        const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 });
+        const options = new (await import("@vladmandic/face-api")).TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 });
         
         let baselineOffset = 0;
         let baselineFrames = 0;
@@ -86,7 +86,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
             continue;
           }
 
-          const detection = await faceapi.detectSingleFace(webcamRef.current.video, options)
+          const detection = await (await import("@vladmandic/face-api")).detectSingleFace(webcamRef.current.video, options)
             .withFaceLandmarks(true);
 
           if (!detection) {
@@ -153,7 +153,7 @@ export default function FaceAuthModal({ isOpen, onClose, onSuccess }: { isOpen: 
           }
           else if (currentState === "EXTRACTING") {
              if (webcamRef.current.video.videoWidth === 0) { await new Promise(r => requestAnimationFrame(r)); continue; }
-             const fullDet = await faceapi.detectSingleFace(webcamRef.current.video, options)
+             const fullDet = await (await import("@vladmandic/face-api")).detectSingleFace(webcamRef.current.video, options)
                .withFaceLandmarks(true)
                .withFaceDescriptor();
              

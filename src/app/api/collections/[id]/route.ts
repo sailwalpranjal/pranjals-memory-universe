@@ -14,7 +14,7 @@ function getSupabase() {
 // GET /api/collections/[id]
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });
@@ -77,7 +77,7 @@ export async function GET(
 // PATCH /api/collections/[id]
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });
@@ -127,7 +127,7 @@ export async function PATCH(
 // DELETE /api/collections/[id]
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Collection ID is required' }, { status: 400 });

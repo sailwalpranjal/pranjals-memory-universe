@@ -11,7 +11,7 @@ interface RouteContext {
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const personId = params.id;
+  const { id: personId } = await params;
   if (!personId) {
     return NextResponse.json({ error: 'Person ID is required' }, { status: 400 });
   }

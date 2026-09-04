@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useEffect, useState, useRef } from "react";
 import Webcam from "react-webcam";
-import * as faceapi from "@vladmandic/face-api";
+// dynamically loaded
 import { ScanFace, Check, ArrowRight, ShieldAlert, Loader2 } from "lucide-react";
 
 export default function AdminEnrollment() {
@@ -17,9 +17,9 @@ export default function AdminEnrollment() {
     const initAndRun = async () => {
       try {
         setMessage("Loading neural models...");
-        await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
-        await faceapi.nets.faceLandmark68TinyNet.loadFromUri('/models');
-        await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
+        await f.nets.tinyFaceDetector.loadFromUri('/models');
+        await (await import("@vladmandic/face-api")).nets.faceLandmark68TinyNet.loadFromUri('/models');
+        await (await import("@vladmandic/face-api")).nets.faceRecognitionNet.loadFromUri('/models');
         
         if (active) setPhase("CENTER");
       } catch {
@@ -38,7 +38,7 @@ export default function AdminEnrollment() {
     
     let active = true;
     const captureLoop = async () => {
-      const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+      const options = new (await import("@vladmandic/face-api")).TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
       
             let consecutiveFrames = 0;
 
@@ -48,7 +48,7 @@ export default function AdminEnrollment() {
           continue;
         }
 
-        const det = await faceapi.detectSingleFace(webcamRef.current.video, options)
+        const det = await (await import("@vladmandic/face-api")).detectSingleFace(webcamRef.current.video, options)
           .withFaceLandmarks(true)
           .withFaceDescriptor();
 

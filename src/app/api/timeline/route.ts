@@ -6,7 +6,7 @@ import { cookies } from 'next/headers';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const adminToken = cookieStore.get('pranjal_admin_token');
   const guestToken = cookieStore.get('pranjal_guest_token');
   const isAdmin = adminToken && adminToken.value === 'true';

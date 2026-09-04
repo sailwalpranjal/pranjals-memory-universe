@@ -15,7 +15,7 @@ function getSupabase() {
 // GET /api/photos/[id]
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
@@ -57,7 +57,7 @@ export async function GET(
 // PATCH /api/photos/[id]
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
@@ -121,7 +121,7 @@ export async function PATCH(
 // DELETE /api/photos/[id]
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
