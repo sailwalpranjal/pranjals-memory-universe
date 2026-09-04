@@ -6,8 +6,6 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 const Hero3D = dynamic(() => import("@/components/Hero3D"), { ssr: false });
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Stars, Float, OrbitControls, Sparkles as DreiSparkles } from "@react-three/drei";
 
 import {
   Camera,
@@ -30,7 +28,6 @@ import OnThisDay from "@/components/OnThisDay";
 type Stats = { photoCount: number; peopleCount: number; placesCount: number; latestPhoto: string | null; recentPhotos: string[]; };
 import GenerateMemoryModal from "@/components/GenerateMemoryModal";
 
-import * as THREE from 'three';
 
 // --- 3D Scene Components ---
 function MemoryNodes() {
